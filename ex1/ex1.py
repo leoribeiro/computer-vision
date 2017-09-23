@@ -7,6 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse,Circle
 
+# pontos no mundo real
+real_points = [(0,61.3),(81.9,61.3),(0,0),(81.9,0)]
+
 coords = []
 circles = []
 
@@ -72,25 +75,67 @@ def openImage():
 
 def solveSystem():
    global coords
+   global real_points
    imagem_points = coords
-   real_points = [(0,61.3),(81.9,61.3),(0,0),(81.9,0)]
-   equations = [
-    [],
-    [],
-    [],
-    [],
 
-    [],
-    [],
-    [],
-    [],
-   ]
+   x0_ = imagem_points[0][0]
+   y0_ = imagem_points[0][1]
+   x1_ = imagem_points[1][0]
+   y1_ = imagem_points[1][1]
+   x2_ = imagem_points[2][0]
+   y2_ = imagem_points[2][1]
+   x3_ = imagem_points[3][0]
+   y3_ = imagem_points[3][1]
+
+   b = np.array([x0_, y0_, x1_, y1_, x2_, y2_, x3_, y3_])
+
+   x0 = real_points[0][0]
+   y0 = real_points[0][1]
+   x1 = real_points[1][0]
+   y1 = real_points[1][1]
+   x2 = real_points[2][0]
+   y2 = real_points[2][1]
+   x3 = real_points[3][0]
+   y3 = real_points[3][1]
+
+   equations = np.array([
+    [x0, y0, 1, 0, 0, 0, -x0*x0_, -y0*y0_],
+    [0, 0, 0, x0, y0, 1, -x0*y0_, -y0*y0_],
+    [x1, y1, 1, 0, 0, 0, -x1*x1_, -y1*y1_],
+    [0, 0, 0, x1, y1, 1, -x1*y1_, -y1*y1_],
+
+    [x2, y2, 1, 0, 0, 0, -x2*x2_, -y2*y2_],
+    [0, 0, 0, x2, y2, 1, -x2*y2_, -y2*y2_],
+    [x3, y3, 1, 0, 0, 0, -x3*x3_, -y3*y3_],
+    [0, 0, 0, x3, y3, 1, -x3*y3_, -y3*y3_],
+   ])
+   x = np.linalg.solve(equations,b)
+
+   h = [[x[0], x[1], x[2]], [x[3], x[4], x[5]], [x[6], x[7], 1]]
+   h_inv = np.linalg.inv(h)
+
+   applyMatrix(h_inv)
+
+
    print coords
    print equations
+   print x
 
-def applyMatrix():
+def applyMatrix(h):
   global image
   pixels = image.load() # create the pixel map
+  width, height = image.size
+
+  print width,height
+
+  new_positions = []
+
+  for i in range(height):
+      for j in range(width):
+        x = np.dot(h,[i,j,1])
+        new_positions.append(x)
+
+  print len(new_positions)
 
 
 
