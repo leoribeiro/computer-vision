@@ -117,9 +117,13 @@ def solveSystem():
    applyMatrix(h_inv)
 
 
-   print coords
-   print equations
-   print x
+   #print coords
+   #print equations
+   #print x
+
+
+def norm_x(x):
+  return [x[0]/x[2],x[1]/x[2],x[2]/x[2]]
 
 def applyMatrix(h):
   global image
@@ -130,18 +134,31 @@ def applyMatrix(h):
 
   new_positions = []
 
+
   for i in range(height):
       for j in range(width):
         x = np.dot(h,[i,j,1])
+        x = norm_x(x)
         new_positions.append(x)
 
-  print len(new_positions)
+  x = np.dot(h,[0,0,1])
+  print "h * (0,0) -> ",x,norm_x(x)
+
+  x = np.dot(h,[0,height - 1,1])
+  print "h * (0,599) -> ",x,norm_x(x)
+
+  x = np.dot(h,[width - 1,height - 1,1])
+  print "h * (799,599) -> ",x,norm_x(x)
+
+  x = np.dot(h,[width - 1,0,1])
+  print "h * (799,0) -> ",x,norm_x(x)
+  
+  #step = (max_x-min_x)/width
 
 
 
 def transformImage():
    solveSystem()
-   applyMatrix()
    return
 
 
