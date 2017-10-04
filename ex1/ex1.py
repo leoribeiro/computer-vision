@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import Tkinter as tk
 from PIL import Image, ImageTk
 import os, tkFileDialog
@@ -137,11 +139,16 @@ def solveSystem():
    x0_ = real_points[0][0]
    y0_ = real_points[0][1]
    x1_ = real_points[1][0]
-   y1_ = real_points[1][1]
-   x2_ = real_points[2][0]
-   y2_ = real_points[2][1]
-   x3_ = real_points[3][0]
+   #y1_ = real_points[1][1] 
+   y1_ = float(e2.get())
+   #x2_ = real_points[2][0]
+   #y2_ = real_points[2][1]
+   x2_ = float(e1.get())
+   y2_ = float(e2.get())
+   #x3_ = real_points[3][0]
+   x3_ = float(e1.get())
    y3_ = real_points[3][1]
+   
 
    print "X0: ("+str(x0_)+" , "+str(y0_)+") "
    print "X1: ("+str(x1_)+" , "+str(y1_)+") "
@@ -276,13 +283,30 @@ def transformImage():
    return
 
 
+def alteraQuadro(*args):
+  if(varImg.get() == 'Legiao'):
+    e1.delete(0,tk.END)
+    e1.insert(0,"32")
+    e2.delete(0,tk.END)
+    e2.insert(0,"45")
+  elif(varImg.get() == 'Brahma'):
+    e1.delete(0,tk.END)
+    e1.insert(0,"81.9")
+    e2.delete(0,tk.END)
+    e2.insert(0,"61.3")
+  else:
+    e1.delete(0,tk.END)
+    e1.insert(0,"")
+    e2.delete(0,tk.END)
+    e2.insert(0,"")    
+
 window = tk.Tk()
 window.title("Image transformation")
 window.geometry("500x500")
 center(window)
 
 B = tk.Button(window, text ="Open image", command = openImage)
-B.pack()
+B.grid(row=0)
 
 #T = tk.Text(window, height=5, width=400)
 
@@ -294,12 +318,35 @@ coords_text.set('')
 image_text = tk.StringVar()
 image_text.set('')
 l1 = tk.Label(window, textvariable = image_text,fg="black")
-l1.pack()
+l1.grid(row=1,columnspan=2)
 l2 = tk.Label(window, textvariable = coords_text,fg="black")
-l2.pack()
+l2.grid(row=2,columnspan=2)
+
+
+tk.Label(window, text="Imagem:").grid(row=3, column=0)
+
+options = ["Selecione","Brahma", "Legiao"]
+varImg = tk.StringVar(window)
+varImg.set(options[0])
+option = tk.OptionMenu(window, varImg, *options)
+option.grid(row=3,column=1)
+
+varImg.trace("w", alteraQuadro)
+
+
+
+
+
+tk.Label(window, text="Width").grid(row=4, column=0)
+tk.Label(window, text="Height").grid(row=5, column=0)
+
+e1 = tk.Entry(window)
+e2 = tk.Entry(window)
+e1.grid(row=4, column=1)
+e2.grid(row=5, column=1)
 
 C = tk.Button(window, text ="Transform!", command = transformImage)
-C.pack()
+C.grid(row=6)
 
 
 window.mainloop()
