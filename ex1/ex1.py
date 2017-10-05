@@ -8,6 +8,7 @@ import matplotlib.widgets as widgets
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse,Circle
+import math
 
 # pontos no mundo real - brahma
 #x_r = 81.9
@@ -188,11 +189,24 @@ def solveSystem():
    #print equations
    
 
+def lerp(a, b, coord):
+    if isinstance(a, tuple):
+        return tuple([lerp(c, d, coord) for c,d in zip(a,b)])
+    ratio = coord - math.floor(coord)
+    return int(round(a * (1.0-ratio) + b * ratio))
+
+def bilinear(im, x, y):
+    x1, y1 = int(math.floor(x)), int(math.floor(y))
+    x2, y2 = x1+1, y1+1
+    left = lerp(im.getpixel((x1, y1)), im.getpixel((x1, y2)), y)
+    right = lerp(im.getpixel((x2, y1)), im.getpixel((x2, y2)), y)
+    return lerp(left, right, x)
 
 def norm_x(x):
   return [x[0]/x[2],x[1]/x[2],x[2]/x[2]]
 
-def applyMatrix(h,h_inv):
+
+def generateNewImage(h,h_inv,interp=False):
   global image
   #pixels = image.load() # create the pixel map
   width, height = image.size
@@ -264,15 +278,28 @@ def applyMatrix(h,h_inv):
       coords = norm_x(coords)
       #print coords
       try:
-        new_pixel = image.getpixel((coords[0],coords[1]))
+        if not interp:
+          new_pixel = image.getpixel((coords[0],coords[1]))
+        else:
+          new_pixel = bilinear(image,coords[0],coords[1])
         new_image.putpixel((x,y),new_pixel)
       except IndexError:
-        pass
+        try:
+          new_pixel = image.getpixel((coords[0],coords[1]))
+        except IndexError:
+          pass
       y_cm += step_y
     x_cm += step_x
 
-  loadImage(new_image)
+  return new_image
 
+def applyMatrix(h,h_inv):
+
+
+  new_image = generateNewImage(h,h_inv,False)
+  loadImage(new_image)
+  new_image = generateNewImage(h,h_inv,True)
+  loadImage(new_image)
 
 
 
