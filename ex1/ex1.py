@@ -85,16 +85,14 @@ def openImage():
    plt.show()
    return
 
-def loadImage(image):
-   global fig
+def loadImage(image,title):
    fig = plt.figure()
-
+   fig.canvas.set_window_title('Similarity Space' + title)
    ax = fig.add_subplot(111)
    arr = np.asarray(image)
    plt.imshow(arr)
    plt.ion()
    plt.show()
-   fig.canvas.set_window_title('Similarity Space')
    return
 
 def returnCoordsText():
@@ -228,26 +226,26 @@ def generateNewImage(h,h_inv,interp=False):
 
 
   x = np.dot(h,[0,0,1])
-  print "h * (0,0) -> ",x,norm_x(x)
+  #print "h * (0,0) -> ",x,norm_x(x)
   x = norm_x(x)
   xs.append(x[0])
   ys.append(x[1])
 
 
   x = np.dot(h,[0,height - 1,1])
-  print "h * (0,599) -> ",x,norm_x(x)
+  #print "h * (0,599) -> ",x,norm_x(x)
   x = norm_x(x)
   xs.append(x[0])
   ys.append(x[1])
 
   x = np.dot(h,[width - 1,height - 1,1])
-  print "h * (799,599) -> ",x,norm_x(x)
+  #print "h * (799,599) -> ",x,norm_x(x)
   x = norm_x(x)
   xs.append(x[0])
   ys.append(x[1])
 
   x = np.dot(h,[width - 1,0,1])
-  print "h * (799,0) -> ",x,norm_x(x)
+  #print "h * (799,0) -> ",x,norm_x(x)
   x = norm_x(x)
   xs.append(x[0])
   ys.append(x[1])
@@ -295,11 +293,15 @@ def generateNewImage(h,h_inv,interp=False):
 
 def applyMatrix(h,h_inv):
 
-
+  print "gerando imagem..."
   new_image = generateNewImage(h,h_inv,False)
-  loadImage(new_image)
-  new_image = generateNewImage(h,h_inv,True)
-  loadImage(new_image)
+  print "imagem gerada."
+  print "gerando imagem interpolada..."
+  new_image_i = generateNewImage(h,h_inv,True)
+  print "imagem interpolada gerada."
+  loadImage(new_image,"")
+  loadImage(new_image_i, " - Interpolada")
+  
 
 
 
