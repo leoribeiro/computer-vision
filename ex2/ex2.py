@@ -10,25 +10,16 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse,Circle
 import math
 
-# pontos no mundo real - brahma
-#x_r = 81.9
-#y_r = 61.3
 
-# legiao
-x_r = 32
-y_r = 45
-real_points = [[0,0],[0,y_r],[x_r,y_r],[x_r,0]]
+coords_p = []
+circles_p = []
+lines_p = []
+q_points_p = 8
 
-coords = []
-circles = []
-lines = []
-# def order_coords(coords):
-#   for c1 in coords:
-#     for c2 in coords:
-#       if(c1[0] < c2[0] and c1[1] < c2[1]):
-#         s0 = c1
-#       if(c1[0] > c2[0] and c1[1] > c2[1]):
-#         s3 = c1
+coords_a = []
+circles_a = []
+lines_a = []
+q_points_a = 8
 
 
 def center(toplevel):
@@ -40,70 +31,68 @@ def center(toplevel):
     y = h/2 - size[1]/2
     toplevel.geometry("%dx%d+%d+%d" % (size + (x, y)))
 
-def clearPoints():
-  global coords
-  global lines
-  global circles
+def clearPoints(coords,lines,circles):
   for l in circles:
     l.remove()
   for l in lines:
     l.remove()
-  coords = []
-  lines = []
-  circles = []
+  del coords[:]
+  del lines[:]
+  del circles[:]
 
-def onclick(event):
-   x = event.xdata
-   y = event.ydata
+def onclick_a(event):
+  x = event.xdata
+  y = event.ydata
+  global coords_a
+  global circles_a
+  global lines_a
+  global q_points_a
+  global fig_a
+  onclick(fig_a,coords_a,circles_a,lines_a,q_points_a,x,y)
+
+def onclick_p(event):
+  x = event.xdata
+  y = event.ydata
+  global coords_p
+  global circles_p
+  global lines_p
+  global q_points_p
+  global fig
+  onclick(fig,coords_p,circles_p,lines_p,q_points_p,x,y)
+
+def onclick(fig,coords,circles,lines,q_points,x,y):
    if x != None and y != None:
-       global coords
-       global image
-       width, height = image.size
-       global circles
-       circle = plt.Circle((event.xdata, event.ydata), 3, color='r')
-       global fig
+       circle = plt.Circle((x, y), 3, color='r')
+       
        fig.add_subplot(111).add_artist(circle)
        
-       if(len(circles) == 4):
-          clearPoints()
-       circles = [circle] + circles
-       coords = [(x,y)] + coords
+       if(len(circles) == q_points):
+          clearPoints(coords,lines,circles)
+       circles.append(circle)
+       coords.append((x,y))
 
-       global lines
-       if(len(coords) == 2):
-         for l in lines:
-           l.remove()
-         lines = []
-         x_ = [coords[0][0],coords[1][0]]
-         y_ = [coords[0][1],coords[1][1]]
-         line = plt.Line2D(x_,y_)
-         fig.add_subplot(111).add_artist(line)
-         lines = [line] + lines
-       if(len(coords) == 4):
-         for l in lines:
-           l.remove()
-         lines = []
-         x_ = [coords[0][0],coords[1][0]]
-         y_ = [coords[0][1],coords[1][1]]
-         line = plt.Line2D(x_,y_)
-         fig.add_subplot(111).add_artist(line)
-         lines = [line] + lines
-         x_ = [coords[2][0],coords[3][0]]
-         y_ = [coords[2][1],coords[3][1]]
-         line = plt.Line2D(x_,y_)
-         fig.add_subplot(111).add_artist(line)
-         lines = [line] + lines
+       colors = ['b', '', 'b','','r', '', 'r']
 
-       if(len(coords) > 3):
-         global coords_text
-         coords_text.set('Coordenadas Escolhidas: \n' + returnCoordsText())
+       if(len(coords) > 1):
+        for l in lines:
+           l.remove()
+        del lines[:]
+        index = 0
+        while True:
+          if((index + 1) >= len(coords)):
+            break
+          x_ = [coords[index][0],coords[index + 1][0]]
+          y_ = [coords[index][1],coords[index + 1][1]]
+          line = plt.Line2D(x_,y_,color = colors[index], lw=3)
+          fig.add_subplot(111).add_artist(line)
+          lines.append(line)          
+          index += 2
 
        fig.canvas.draw()
        
 
 
 def openImage():
-   #tkMessageBox.showinfo( "Hello Python", "Hello World")
    filename_image = tkFileDialog.askopenfilename()
    global fig
    fig = plt.figure()
@@ -116,113 +105,23 @@ def openImage():
    arr = np.asarray(image)
    plt_image=plt.imshow(arr)
    fig.canvas.set_window_title('Projective Space')
-   fig.canvas.mpl_connect('button_press_event', onclick)
+   fig.canvas.mpl_connect('button_press_event', onclick_p)
 
    plt.ion()
    plt.show()
    return
 
 def loadImage(image,title):
-   fig = plt.figure()
-   fig.canvas.set_window_title('Similarity Space' + title)
-   ax = fig.add_subplot(111)
+   global fig_a
+   fig_a = plt.figure()
+   fig_a.canvas.set_window_title(title)
+   fig_a.canvas.mpl_connect('button_press_event', onclick_a)
+   ax = fig_a.add_subplot(111)
    arr = np.asarray(image)
    plt.imshow(arr)
    plt.ion()
    plt.show()
    return
-
-def returnCoordsText():
-   coords_order = returnCoords()
-   text =  "X0 : ("+"{0:.2f}".format(coords_order[0])+" , "+"{0:.2f}".format(coords_order[1])+") \n X1 : ("+"{0:.2f}".format(coords_order[2])+" , "+"{0:.2f}".format(coords_order[3])+") "
-   text += "\n X2 : ("+"{0:.2f}".format(coords_order[4])+" , "+"{0:.2f}".format(coords_order[5])+") \n X3 : ("+"{0:.2f}".format(coords_order[6])+" , "+"{0:.2f}".format(coords_order[7])+") "
-
-   return text
-
-def returnCoords():
-   global coords
-   imagem_points = sorted(coords, key=lambda tup: tup[0]) 
-   if(imagem_points[2][1] > imagem_points[3][1]):
-      x2 = imagem_points[2][0]
-      y2 = imagem_points[2][1]
-      x3 = imagem_points[3][0]
-      y3 = imagem_points[3][1]
-   else:
-      x3 = imagem_points[2][0]
-      y3 = imagem_points[2][1]
-      x2 = imagem_points[3][0]
-      y2 = imagem_points[3][1]   
-   if(imagem_points[0][1] > imagem_points[1][1]):
-      x1 = imagem_points[0][0]
-      y1 = imagem_points[0][1]
-      x0 = imagem_points[1][0]
-      y0 = imagem_points[1][1]
-   else:
-      x0 = imagem_points[0][0]
-      y0 = imagem_points[0][1]
-      x1 = imagem_points[1][0]
-      y1 = imagem_points[1][1]
-
-   return x0,y0,x1,y1,x2,y2,x3,y3
-
-
-
-def solveSystem():
-   global coords
-   global real_points
-   
-
-   x0_ = real_points[0][0]
-   y0_ = real_points[0][1]
-   x1_ = real_points[1][0]
-   #y1_ = real_points[1][1] 
-   y1_ = float(e2.get())
-   #x2_ = real_points[2][0]
-   #y2_ = real_points[2][1]
-   x2_ = float(e1.get())
-   y2_ = float(e2.get())
-   #x3_ = real_points[3][0]
-   x3_ = float(e1.get())
-   y3_ = real_points[3][1]
-   
-
-   print "X0: ("+str(x0_)+" , "+str(y0_)+") "
-   print "X1: ("+str(x1_)+" , "+str(y1_)+") "
-   print "X2: ("+str(x2_)+" , "+str(y2_)+") "
-   print "X3: ("+str(x3_)+" , "+str(y3_)+") "
-
-   x0,y0,x1,y1,x2,y2,x3,y3 = returnCoords()
-
-   b = np.array([x0_, y0_, x1_, y1_, x2_, y2_, x3_, y3_])
-
-
-   print real_points
-
-   equations = np.array([
-    [x0, y0, 1, 0, 0, 0, -x0*x0_, -y0*x0_],
-    [0, 0, 0, x0, y0, 1, -x0*y0_, -y0*y0_],
-    [x1, y1, 1, 0, 0, 0, -x1*x1_, -y1*x1_],
-    [0, 0, 0, x1, y1, 1, -x1*y1_, -y1*y1_],
-    [x2, y2, 1, 0, 0, 0, -x2*x2_, -y2*x2_],
-    [0, 0, 0, x2, y2, 1, -x2*y2_, -y2*y2_],
-    [x3, y3, 1, 0, 0, 0, -x3*x3_, -y3*x3_],
-    [0, 0, 0, x3, y3, 1, -x3*y3_, -y3*y3_],
-   ])
-
-   x = np.linalg.solve(equations,b)
-
-   h = np.array([[x[0], x[1], x[2]], [x[3], x[4], x[5]], [x[6], x[7], 1]])
-   print "h",h
-   h_inv = np.linalg.inv(h)
-   print "h_inv",h_inv
-   print "x:",x
-
-   applyMatrix(h,h_inv)
-
-
-   #print coords
-   #print equations
-   
 
 def lerp(a, b, coord):
     if isinstance(a, tuple):
@@ -238,51 +137,37 @@ def bilinear(im, x, y):
     return lerp(left, right, x)
 
 def norm_x(x):
+  if(x[2] == 0):
+    return x
   return [x[0]/x[2],x[1]/x[2],x[2]/x[2]]
 
 
-def generateNewImage(h,h_inv,interp=False):
-  global image
+def generateNewImage(h,h_inv,image,interp=False):
+  
   #pixels = image.load() # create the pixel map
   width, height = image.size
-
-  #print width,height
 
   new_positions = []
   xs = []
   ys = []
 
-  # for i in range(width):
-  #    for j in range(height):
-  #      x = np.dot(h,[i,j,1])
-  #      x = norm_x(x)
-  #      new_positions.append(x)
-  #      xs.append(x[0])
-  #      ys.append(x[1])
-
-
-
   x = np.dot(h,[0,0,1])
-  #print "h * (0,0) -> ",x,norm_x(x)
   x = norm_x(x)
   xs.append(x[0])
   ys.append(x[1])
 
 
   x = np.dot(h,[0,height - 1,1])
-  #print "h * (0,599) -> ",x,norm_x(x)
   x = norm_x(x)
   xs.append(x[0])
   ys.append(x[1])
 
   x = np.dot(h,[width - 1,height - 1,1])
-  #print "h * (799,599) -> ",x,norm_x(x)
   x = norm_x(x)
   xs.append(x[0])
   ys.append(x[1])
 
   x = np.dot(h,[width - 1,0,1])
-  #print "h * (799,0) -> ",x,norm_x(x)
   x = norm_x(x)
   xs.append(x[0])
   ys.append(x[1])
@@ -309,9 +194,7 @@ def generateNewImage(h,h_inv,interp=False):
     y_cm = min_y
     for y in range(n_height):
       coords = np.dot(h_inv,[x_cm,y_cm,1])
-      #print coords
       coords = norm_x(coords)
-      #print coords
       try:
         if not interp:
           new_pixel = image.getpixel((coords[0],coords[1]))
@@ -328,43 +211,104 @@ def generateNewImage(h,h_inv,interp=False):
 
   return new_image
 
-def applyMatrix(h,h_inv):
+def applyMatrix(h,h_inv,image):
 
   print "gerando imagem..."
-  new_image = generateNewImage(h,h_inv,False)
+  new_image = generateNewImage(h,h_inv,image,False)
   print "imagem gerada."
-  print "gerando imagem interpolada..."
-  new_image_i = generateNewImage(h,h_inv,True)
-  print "imagem interpolada gerada."
-  loadImage(new_image,"")
-  loadImage(new_image_i, " - Interpolada")
+  #print "gerando imagem interpolada..."
+  #new_image_i = generateNewImage(h,h_inv,True)
+  #print "imagem interpolada gerada."
+  return new_image
+  #loadImage(new_image_i, " - Interpolada")
   
 
 
+def projective_to_affine():
+  global coords_p
+  coords = coords_p
+
+  l_0 = np.cross([coords[0][0],coords[0][1],1],[coords[1][0],coords[1][1],1])
+  l_1 = np.cross([coords[2][0],coords[2][1],1],[coords[3][0],coords[3][1],1])
+  l_2 = np.cross([coords[4][0],coords[4][1],1],[coords[5][0],coords[5][1],1])
+  l_3 = np.cross([coords[6][0],coords[6][1],1],[coords[7][0],coords[7][1],1])
+
+  x_0 = np.cross(l_0,l_1)
+  x_1 = np.cross(l_2,l_3)
+
+  l = np.cross(x_0,x_1)
+
+  print "l",l
+
+  h_p = np.array([[1,0,0],[0,1,0],l])
+  h_p_i = np.linalg.inv(h_p)
+
+  l_i = np.dot(h_p_i,l)
+  print "l_i",l_i
+
+  print "h_p",h_p
+  return h_p
+
+def affine_to_similarity():
+  global coords_a
+  coords = coords_p
+  l = np.cross([coords[0][0],coords[0][1],1],[coords[1][0],coords[1][1],1])
+  m = np.cross([coords[2][0],coords[2][1],1],[coords[3][0],coords[3][1],1])
+
+  print "l",l
+  print "m",m
+
+  #l = norm_x(l)
+  #m = norm_x(m)
+
+  term1 = l[0]*m[0]
+  term2 = l[0]*m[1]+l[1]*m[0]
+  term3 = l[1]*m[1]
+
+  ll = np.cross([coords[4][0],coords[4][1],1],[coords[5][0],coords[5][1],1])
+  mm = np.cross([coords[6][0],coords[6][1],1],[coords[7][0],coords[7][1],1])
+  #ll = norm_x(ll)
+  #mm = norm_x(mm)
+
+  term1_ = ll[0]*mm[0]
+  term2_ = ll[0]*mm[1]+ll[1]*mm[0]
+  term3_ = ll[1]*mm[1]
+
+  a = np.array([[term1,term2],[term1_,term2_]])
+  b = np.array([term3,term3_])
+  x = np.linalg.solve(a,b)
+
+  h_ = np.array([[x[0],x[1],0],[x[1],1,0],[0,0,0]])
+  
+
+  print "h_s",h_s
+
+  return h_s
 
 
 
-def transformImage():
-   solveSystem()
+  
+
+def transformAffine():
+   global h_p
+   h_p = projective_to_affine()
+   h_inv = np.linalg.inv(h_p)
+   global image
+   new_image = applyMatrix(h_p,h_inv,image)
+   loadImage(new_image,'Affine Space')
+   global image_affine 
+   image_affine = new_image
    return
 
-
-def alteraQuadro(*args):
-  if(varImg.get() == 'Legiao'):
-    e1.delete(0,tk.END)
-    e1.insert(0,"32")
-    e2.delete(0,tk.END)
-    e2.insert(0,"45")
-  elif(varImg.get() == 'Brahma'):
-    e1.delete(0,tk.END)
-    e1.insert(0,"81.9")
-    e2.delete(0,tk.END)
-    e2.insert(0,"61.3")
-  else:
-    e1.delete(0,tk.END)
-    e1.insert(0,"")
-    e2.delete(0,tk.END)
-    e2.insert(0,"")    
+def transformSimilarity():
+   global image_affine
+   h_s = affine_to_similarity()
+   h_inv = np.linalg.inv(h_s)
+   new_image =  applyMatrix(h_s,h_inv,image_affine)
+   loadImage(new_image,'Similarity Space')
+   global image_similarity 
+   image_similarity = new_image
+   return 
 
 window = tk.Tk()
 window.title("Image transformation")
@@ -373,11 +317,6 @@ center(window)
 
 B = tk.Button(window, text ="Open image", command = openImage)
 B.grid(row=0)
-
-#T = tk.Text(window, height=5, width=400)
-
-#T.insert(tk.END, "Coordenadas:\n")
-#T.pack()
 
 coords_text = tk.StringVar()
 coords_text.set('')
@@ -389,30 +328,9 @@ l2 = tk.Label(window, textvariable = coords_text,fg="black")
 l2.grid(row=2,columnspan=2)
 
 
-tk.Label(window, text="Imagem:").grid(row=3, column=0)
-
-options = ["Selecione","Brahma", "Legiao"]
-varImg = tk.StringVar(window)
-varImg.set(options[0])
-option = tk.OptionMenu(window, varImg, *options)
-option.grid(row=3,column=1)
-
-varImg.trace("w", alteraQuadro)
-
-
-
-
-
-tk.Label(window, text="Width").grid(row=4, column=0)
-tk.Label(window, text="Height").grid(row=5, column=0)
-
-e1 = tk.Entry(window)
-e2 = tk.Entry(window)
-e1.grid(row=4, column=1)
-e2.grid(row=5, column=1)
-
-C = tk.Button(window, text ="Transform!", command = transformImage)
+C = tk.Button(window, text ="projective to affine", command = transformAffine)
 C.grid(row=6)
-
+C = tk.Button(window, text ="affine to similarity", command = transformSimilarity)
+C.grid(row=7)
 
 window.mainloop()
