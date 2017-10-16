@@ -112,10 +112,12 @@ def openImage():
    return
 
 def loadImage(image,title):
-   global fig_a
+   if(title == 'Affine Space'):
+    global fig_a
    fig_a = plt.figure()
    fig_a.canvas.set_window_title(title)
-   fig_a.canvas.mpl_connect('button_press_event', onclick_a)
+   if(title == 'Affine Space'):
+    fig_a.canvas.mpl_connect('button_press_event', onclick_a)
    ax = fig_a.add_subplot(111)
    arr = np.asarray(image)
    plt.imshow(arr)
@@ -241,7 +243,7 @@ def projective_to_affine():
   print "l",l
 
   h_p = np.array([[1,0,0],[0,1,0],l])
-  h_p_i = np.linalg.inv(h_p)
+  h_p_i = np.linalg.inv(np.transpose(h_p))
 
   l_i = np.dot(h_p_i,l)
   print "l_i",l_i
@@ -251,7 +253,8 @@ def projective_to_affine():
 
 def affine_to_similarity():
   global coords_a
-  coords = coords_p
+  coords = coords_a
+  print "coords",coords
   l = np.cross([coords[0][0],coords[0][1],1],[coords[1][0],coords[1][1],1])
   m = np.cross([coords[2][0],coords[2][1],1],[coords[3][0],coords[3][1],1])
 
@@ -262,26 +265,57 @@ def affine_to_similarity():
   #m = norm_x(m)
 
   term1 = l[0]*m[0]
-  term2 = l[0]*m[1]+l[1]*m[0]
-  term3 = l[1]*m[1]
+  term2 = (l[0]*m[1])+(l[1]*m[0])
+  term3 = (l[1]*m[1])* -1
 
   ll = np.cross([coords[4][0],coords[4][1],1],[coords[5][0],coords[5][1],1])
   mm = np.cross([coords[6][0],coords[6][1],1],[coords[7][0],coords[7][1],1])
   #ll = norm_x(ll)
   #mm = norm_x(mm)
 
+  print "ll",ll
+  print "mm",mm
+
   term1_ = ll[0]*mm[0]
-  term2_ = ll[0]*mm[1]+ll[1]*mm[0]
-  term3_ = ll[1]*mm[1]
+  term2_ = (ll[0]*mm[1])+(ll[1]*mm[0])
+  term3_ = (ll[1]*mm[1])* -1
 
   a = np.array([[term1,term2],[term1_,term2_]])
   b = np.array([term3,term3_])
   x = np.linalg.solve(a,b)
+  print "a",a
+  print "b",b
+  print "x",x
 
-  h_ = np.array([[x[0],x[1],0],[x[1],1,0],[0,0,0]])
-  
+  #h_ = np.array([[x[0],x[1],0],[x[1],1,0],[0,0,0]])
+
+  h_ = np.array([[x[0],x[1]],[x[1],1]])
+
+  print "h_",h_
+
+  q, r = np.linalg.qr(h_)
+
+  print "r",r
+  print "q",q
+
+  L = np.linalg.cholesky(h_)
+  print "L",L
+  h__ = np.dot(L, L.T.conj())
+  print "h_",h__
+  L2 = np.transpose(L)
+  print "L2",L2
+
+  L_t = np.transpose(L)
+  h_s = np.array([[L[0][0],L[1][0],0],[0,L[1][1],0],[0,0,1]])
+
+  #
+
+  #h__ = np.dot(L,L_t)
+
+  #print "h__",h__ 
 
   print "h_s",h_s
+  #h_s = r
 
   return h_s
 
