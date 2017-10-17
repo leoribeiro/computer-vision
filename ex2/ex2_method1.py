@@ -266,7 +266,7 @@ def affine_to_similarity():
 
   term1 = l[0]*m[0]
   term2 = (l[0]*m[1])+(l[1]*m[0])
-  term3 = (l[1]*m[1])* -1
+  term3 = (l[1]*m[1])*-1
 
   ll = np.cross([coords[4][0],coords[4][1],1],[coords[5][0],coords[5][1],1])
   mm = np.cross([coords[6][0],coords[6][1],1],[coords[7][0],coords[7][1],1])
@@ -278,7 +278,7 @@ def affine_to_similarity():
 
   term1_ = ll[0]*mm[0]
   term2_ = (ll[0]*mm[1])+(ll[1]*mm[0])
-  term3_ = (ll[1]*mm[1])* -1
+  term3_ = (ll[1]*mm[1])*-1
 
   a = np.array([[term1,term2],[term1_,term2_]])
   b = np.array([term3,term3_])
@@ -289,24 +289,18 @@ def affine_to_similarity():
 
   #h_ = np.array([[x[0],x[1],0],[x[1],1,0],[0,0,0]])
 
-  h_ = np.array([[x[0],x[1]],[x[1],1]])
+  s = np.array([[x[0],x[1]],[x[1],1]])
 
-  print "h_",h_
+  print "s",s
 
-  q, r = np.linalg.qr(h_)
+  k = np.linalg.cholesky(s)
+  print "k",k
+  k__ = np.dot(k, k.T.conj())
+  print "hk_",k__
+  k_t = np.transpose(k)
+  print "k.t",k_t
 
-  print "r",r
-  print "q",q
-
-  L = np.linalg.cholesky(h_)
-  print "L",L
-  h__ = np.dot(L, L.T.conj())
-  print "h_",h__
-  L2 = np.transpose(L)
-  print "L2",L2
-
-  L_t = np.transpose(L)
-  h_s = np.array([[L[0][0],L[1][0],0],[0,L[1][1],0],[0,0,1]])
+  h_s = np.array([[k[0][0],k[0][1],0],[k[1][0],k[1][1],0],[0,0,1]])
 
   #
 
