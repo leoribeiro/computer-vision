@@ -239,6 +239,7 @@ def projective_to_affine():
   x_1 = np.cross(l_2,l_3)
 
   l = np.cross(x_0,x_1)
+  l = norm_x(l)
 
   print "l",l
 
@@ -266,7 +267,7 @@ def affine_to_similarity():
 
   term1 = l[0]*m[0]
   term2 = (l[0]*m[1])+(l[1]*m[0])
-  term3 = (l[1]*m[1])*-1
+  term3 = -(l[1]*m[1])
 
   ll = np.cross([coords[4][0],coords[4][1],1],[coords[5][0],coords[5][1],1])
   mm = np.cross([coords[6][0],coords[6][1],1],[coords[7][0],coords[7][1],1])
@@ -278,7 +279,7 @@ def affine_to_similarity():
 
   term1_ = ll[0]*mm[0]
   term2_ = (ll[0]*mm[1])+(ll[1]*mm[0])
-  term3_ = (ll[1]*mm[1])*-1
+  term3_ = -(ll[1]*mm[1])
 
   a = np.array([[term1,term2],[term1_,term2_]])
   b = np.array([term3,term3_])
@@ -300,7 +301,20 @@ def affine_to_similarity():
   k_t = np.transpose(k)
   print "k.t",k_t
 
-  h_s = np.array([[k[0][0],k[0][1],0],[k[1][0],k[1][1],0],[0,0,1]])
+  U, d, V = np.linalg.svd(s,full_matrices=True)
+  print "U",U
+  print "d",d
+  print "V",V
+
+  d_sqrt = np.sqrt(np.diag(d))
+
+  #e = np.linalg.cholesky(np.diag(d))
+  #v = np.dot(U,e)
+  v = np.dot(U,d_sqrt)
+  v = np.dot(v,V)
+
+
+  h_s = np.array([[v[0][0],v[0][1],0],[v[1][0],v[1][1],0],[0,0,1]])
 
   #
 
@@ -332,7 +346,7 @@ def transformSimilarity():
    global image_affine
    h_s = affine_to_similarity()
    h_inv = np.linalg.inv(h_s)
-   new_image =  applyMatrix(h_s,h_inv,image_affine)
+   new_image =  applyMatrix(h_inv,h_s,image_affine)
    loadImage(new_image,'Similarity Space')
    global image_similarity 
    image_similarity = new_image
