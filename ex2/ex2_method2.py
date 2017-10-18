@@ -238,13 +238,23 @@ def projective_to_similarity():
   print "b",b
   print "x",x
 
-  h = np.array([[x[0],x[1]/2,x[3]/2],[x[1]/2,x[2],x[4]/2],[x[3]/2,x[4]/2,1]])
+  c = np.array([[x[0],x[1]/2,x[3]/2],[x[1]/2,x[2],x[4]/2],[x[3]/2,x[4]/2,1]])
 
+  U, s, V = np.linalg.svd(c, full_matrices=True)
+  print "U",U
+  print "s",s
+  print "V",V
 
-  print "h",h
+  #d_1 = np.diag([np.sqrt(s[0]),np.sqrt(s[1]),10])
+  #d_2 = np.diag([s[0],s[1],s[2]/100])
+  #d = np.dot(d_1,d_2)
+  #d = np.dot(d,d_1)
 
+  #print "d",d
 
-  return h
+  #h = np.dot(U,d)
+  #print "h",h
+  return U
 
 
 
@@ -252,7 +262,7 @@ def transformSimilarity():
    global image
    h = projective_to_similarity()
    h_inv = np.linalg.inv(h)
-   new_image =  applyMatrix(h,h_inv,image)
+   new_image =  applyMatrix(h_inv,h,image)
    loadImage(new_image,'Similarity Space')
    return 
 
