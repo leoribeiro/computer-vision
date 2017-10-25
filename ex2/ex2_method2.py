@@ -243,8 +243,9 @@ def alg_2(c):
   a = np.array(s)
   b = np.array([c[0][2],c[1][2]])
   v = np.linalg.solve(a,b)
-  
-  h = np.dot()
+  h_a = np.array([[k_t[0][0],k_t[0][1],0],[k_t[1][0],k_t[1][1],0],[0,0,1]])
+  h_p = np.array([[1,0,0],[0,1,0],[v[0],v[1],1]])
+  h = np.dot(h_p,h_a)
   return h
 
 def projective_to_similarity():
@@ -272,7 +273,7 @@ def projective_to_similarity():
 
   c = np.array([[x[0],x[1]/2,x[3]/2],[x[1]/2,x[2],x[4]/2],[x[3]/2,x[4]/2,1]])
 
-  h = alg_1(c)
+  h = alg_2(c)
   print "h",h
   return h
 
