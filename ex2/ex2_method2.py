@@ -228,7 +228,7 @@ def projective_to_similarity():
     m = np.cross([coords[i+2][0],coords[i+2][1],1],[coords[i+3][0],coords[i+3][1],1])
     terms = returnTerms(l,m)
     a.append(terms[:-1])
-    b.append(terms[-1:])
+    b.append(terms[-1])
     i += 4
 
   a = np.array(a)
@@ -239,22 +239,22 @@ def projective_to_similarity():
   print "x",x
 
   c = np.array([[x[0],x[1]/2,x[3]/2],[x[1]/2,x[2],x[4]/2],[x[3]/2,x[4]/2,1]])
-
+  print "c",c
   U, s, V = np.linalg.svd(c, full_matrices=True)
   print "U",U
   print "s",s
   print "V",V
 
-  #d_1 = np.diag([np.sqrt(s[0]),np.sqrt(s[1]),10])
-  #d_2 = np.diag([s[0],s[1],s[2]/100])
-  #d = np.dot(d_1,d_2)
-  #d = np.dot(d,d_1)
+  d_1 = np.diag([np.sqrt(s[0]),np.sqrt(s[1]),10])
+  d_2 = np.diag([s[0],s[1],s[2]/100])
+  d = np.dot(d_1,d_2)
+  d = np.dot(d,d_1)
 
-  #print "d",d
+  print "d",d
 
-  #h = np.dot(U,d)
-  #print "h",h
-  return U
+  h = np.dot(U,d)
+  print "h",h
+  return h
 
 
 
