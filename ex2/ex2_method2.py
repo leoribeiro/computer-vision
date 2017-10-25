@@ -215,6 +215,38 @@ def returnTerms(l,m):
   term6 = (l[2]*m[2])* -1
   return term1,term2,term3,term4,term5,term6
 
+
+def alg_1(c):
+  print "c",c
+  U, s, V = np.linalg.svd(c, full_matrices=True)
+  print "U",U
+  print "s",s
+  print "V",V
+
+  d_1 = np.diag([np.sqrt(s[0]),np.sqrt(s[1]),10])
+  d_2 = np.diag([s[0],s[1],s[2]/100])
+  d = np.dot(d_1,d_2)
+  d = np.dot(d,d_1)
+
+  print "d",d
+
+  h = np.dot(U,d)
+  return h
+
+def alg_2(c):
+  s = np.array([[c[0][0],c[0][1]],[c[1][0],c[1][1]]])
+  k = np.linalg.cholesky(s)
+  print "k",k
+  k_t = np.transpose(k)
+  print "k.t",k_t
+
+  a = np.array(s)
+  b = np.array([c[0][2],c[1][2]])
+  v = np.linalg.solve(a,b)
+  
+  h = np.dot()
+  return h
+
 def projective_to_similarity():
   global coords_p
   coords = coords_p
@@ -239,20 +271,8 @@ def projective_to_similarity():
   print "x",x
 
   c = np.array([[x[0],x[1]/2,x[3]/2],[x[1]/2,x[2],x[4]/2],[x[3]/2,x[4]/2,1]])
-  print "c",c
-  U, s, V = np.linalg.svd(c, full_matrices=True)
-  print "U",U
-  print "s",s
-  print "V",V
 
-  d_1 = np.diag([np.sqrt(s[0]),np.sqrt(s[1]),10])
-  d_2 = np.diag([s[0],s[1],s[2]/100])
-  d = np.dot(d_1,d_2)
-  d = np.dot(d,d_1)
-
-  print "d",d
-
-  h = np.dot(U,d)
+  h = alg_1(c)
   print "h",h
   return h
 
