@@ -234,7 +234,9 @@ def alg_1(c):
   return h
 
 def alg_2(c):
+  print "c",c
   s = np.array([[c[0][0],c[0][1]],[c[1][0],c[1][1]]])
+  print "s",s
   k = np.linalg.cholesky(s)
   print "k",k
   k_t = np.transpose(k)
@@ -243,8 +245,13 @@ def alg_2(c):
   a = np.array(s)
   b = np.array([c[0][2],c[1][2]])
   v = np.linalg.solve(a,b)
+  print "a",a
+  print "b",b
+  print "v",v
   h_a = np.array([[k_t[0][0],k_t[0][1],0],[k_t[1][0],k_t[1][1],0],[0,0,1]])
+  print "h_a",h_a
   h_p = np.array([[1,0,0],[0,1,0],[v[0],v[1],1]])
+  print "h_p",h_p
   h = np.dot(h_p,h_a)
   return h
 
