@@ -242,12 +242,10 @@ def alg_2(c):
   k_t = np.transpose(k)
   print "k.t",k_t
 
-  a = np.array(s)
-  b = np.array([c[0][2],c[1][2]])
-  v = np.linalg.solve(a,b)
-  print "a",a
-  print "b",b
-  print "v",v
+
+  si = np.linalg.inv(s)
+  v = np.dot([c[0,2], c[1,2]], si)
+
   h_a = np.array([[k_t[0][0],k_t[0][1],0],[k_t[1][0],k_t[1][1],0],[0,0,1]])
   print "h_a",h_a
   h_p = np.array([[1,0,0],[0,1,0],[v[0],v[1],1]])
