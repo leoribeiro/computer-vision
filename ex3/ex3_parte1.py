@@ -14,6 +14,7 @@ import copy
 
 coords = {}
 images = {}
+images_ = {}
 cont_images = 0
 q_points = 4
 
@@ -33,20 +34,23 @@ def onclick_image(event,cont_images):
   y = event.ydata
   global coords
   global images
-  global q_points
   fig = images[cont_images]
-  coords = coords[cont_images]
-  onclick(fig,coords,x,y)
+  c = coords[cont_images]
+  onclick(fig,c,x,y)
 
 def onclick(fig,coords,x,y):
+   global q_points
    if x != None and y != None:
        circle = plt.Circle((x, y), 3, color='r')
        
        fig.add_subplot(111).add_artist(circle)
        
-       if(len(coords[cont_images]) == q_points):
-          coords[cont_images] = []
+       
+       if(len(coords) == q_points):
+          coords = []
        coords.append((x,y))
+
+       print "coords",coords
 
        fig.canvas.draw()
        
@@ -56,6 +60,7 @@ def openImage():
    filename_image = tkFileDialog.askopenfilename()
    global cont_images
    global images
+   global images_
    global coords
    fig = plt.figure()
    images[cont_images] = fig
@@ -64,11 +69,11 @@ def openImage():
    global image_text
    image_text.set('Imagem carregada: \n' + str(filename_image))
    ax = fig.add_subplot(111)
-   global image
    image = Image.open(filename_image)
+   images_[cont_images] = image
    arr = np.asarray(image)
    plt_image=plt.imshow(arr)
-   fig.canvas.set_window_title('Projective Space')
+   fig.canvas.set_window_title('Image')
    print "cont_images_openimage",cont_images
    num_image = copy.copy(cont_images)
    fig.canvas.mpl_connect('button_press_event', lambda event: onclick_image(event, num_image))
@@ -98,35 +103,46 @@ def norm_x(x):
   return [x[0]/x[2],x[1]/x[2],x[2]/x[2]]
 
 
-def generateNewImage(h,h_inv,image,interp=False):
+def generateNewImage(h,h_inv):
+
+  global images_
   
   #pixels = image.load() # create the pixel map
-  width, height = image.size
+  width0, height0 = images_[0].size
+  width1, height1 = images_[1].size
+
+  height = height0
+  width = width0 + width1
 
   new_positions = []
   xs = []
   ys = []
 
-  x = np.dot(h,[0,0,1])
+  x = np.dot(h_inv,[0,0,1])
   x = norm_x(x)
   xs.append(x[0])
   ys.append(x[1])
 
 
-  x = np.dot(h,[0,height - 1,1])
+  x = np.dot(h_inv,[0,height1 - 1,1])
   x = norm_x(x)
   xs.append(x[0])
   ys.append(x[1])
 
-  x = np.dot(h,[width - 1,height - 1,1])
+  x = np.dot(h_inv,[width1 - 1,height1 - 1,1])
   x = norm_x(x)
   xs.append(x[0])
   ys.append(x[1])
 
-  x = np.dot(h,[width - 1,0,1])
+  x = np.dot(h_inv,[width1 - 1,0,1])
   x = norm_x(x)
   xs.append(x[0])
   ys.append(x[1])
+
+  xs.append(0)
+  xs.append(width0 - 1)
+  ys.append(0)
+  ys.append(height0 - 1)
 
   min_x = min(xs)
   min_y = min(ys)
@@ -136,41 +152,42 @@ def generateNewImage(h,h_inv,image,interp=False):
   print min_x,max_x
   print min_y,max_y
 
+  ratio = (max_x - min_x, max_y - min_y)
+
   n_width = width
-  n_height = height
+  n_height = int(n_width * (ratio[1] / ratio[0]))
 
   new_image = Image.new('RGB', (n_width, n_height))
-  n_width, n_height = new_image.size
-  
-  step_y = (max_y - min_y)/n_height
-  step_x = (max_x - min_x)/n_width
 
+  step_y = (max_y - min_y)/height
+  step_x = (max_x - min_x)/width
   x_cm = min_x
+  print "width",width
+  print "height",height
   for x in range(n_width):
     y_cm = min_y
     for y in range(n_height):
-      coords = np.dot(h_inv,[x_cm,y_cm,1])
+      coords = np.dot(h,[x_cm,y_cm,1])
       coords = norm_x(coords)
       try:
-        if not interp:
-          new_pixel = image.getpixel((coords[0],coords[1]))
-        else:
-          new_pixel = bilinear(image,coords[0],coords[1])
+        new_pixel = images_[0].getpixel((coords[0],coords[1]))
         new_image.putpixel((x,y),new_pixel)
       except IndexError:
-        try:
-          new_pixel = image.getpixel((coords[0],coords[1]))
-        except IndexError:
-          pass
+        pass
+      try:
+        new_pixel = images_[1].getpixel((coords[0],coords[1]))
+        new_image.putpixel((x,y),new_pixel)
+      except IndexError:
+        pass
       y_cm += step_y
     x_cm += step_x
 
   return new_image
 
-def applyMatrix(h,h_inv,image):
+def applyMatrix(h,h_inv):
 
   print "gerando imagem..."
-  new_image = generateNewImage(h,h_inv,image,False)
+  new_image = generateNewImage(h,h_inv)
   print "imagem gerada."
   #print "gerando imagem interpolada..."
   #new_image_i = generateNewImage(h,h_inv,True)
@@ -179,9 +196,45 @@ def applyMatrix(h,h_inv,image):
   #loadImage(new_image_i, " - Interpolada")
   
 
+def returnMatrix(x,x_):
+  print "x",x
+  print "x_",x_
+  line1 = [0,0,0,-x_[2]*x[0],-x_[2]*x[1],-x_[2]*x[2],x_[1]*x[0],x_[1]*x[1],x_[1]*x[2]]
+  line2 = [x_[2]*x[0],x_[2]*x[1],x_[2]*x[2],0,0,0,-x_[0]*x[0],-x_[0]*x[1],-x_[0]*x[2]]
+  #line3 = [-x_[1]*x[0],-x_[1]*x[1],-x_[1]*x[2],x_[0]*x[0],x_[0]*x[1],x_[0]*x[2],0,0,0]
+  return line1,line2
 
-def generateMatrix():
-  pass
+
+def calc_matrix():
+  a = [] 
+  for i in range(0,q_points):
+    A = returnMatrix([coords[0][i][0],coords[0][i][1],1],[coords[1][i][0],coords[1][i][1],1])
+    a.append(A[0])
+    a.append(A[1])
+  a = np.array(a)
+
+  U, s, V = np.linalg.svd(a, full_matrices=True)
+  print "U",U
+  print "s",s
+  print "V",V
+
+  #c = V[:, -1]
+  c = V[-1]
+  print "c",c
+  h = np.array([[c[0],c[1],c[2]],[c[3],c[4],c[5]],[c[6],c[7],c[8]]])
+  print "h",h
+  #h = []
+  return h
+
+def generateImage():
+  h = calc_matrix()
+  h_inv = np.linalg.inv(h)
+  new_image =  applyMatrix(h_inv,h)
+  loadImage(new_image,'Panorama')
+  return 
+
+
+
 
 
 
@@ -205,7 +258,7 @@ l2 = tk.Label(window, textvariable = coords_text,fg="black")
 l2.grid(row=2,columnspan=2)
 
 
-C = tk.Button(window, text ="projective to similarity", command = generateMatrix)
+C = tk.Button(window, text ="panorama", command = generateImage)
 C.grid(row=6)
 
 
