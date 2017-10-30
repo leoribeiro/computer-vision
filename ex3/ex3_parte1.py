@@ -114,7 +114,6 @@ def generateNewImage(h,h_inv):
   height = height0
   width = width0 + width1
 
-  new_positions = []
   xs = []
   ys = []
 
@@ -159,8 +158,8 @@ def generateNewImage(h,h_inv):
 
   new_image = Image.new('RGB', (n_width, n_height))
 
-  step_y = (max_y - min_y)/height
-  step_x = (max_x - min_x)/width
+  step_y = (max_y - min_y)/n_height
+  step_x = (max_x - min_x)/n_width
   x_cm = min_x
   print "width",width
   print "height",height
@@ -170,7 +169,7 @@ def generateNewImage(h,h_inv):
       coords = np.dot(h,[x_cm,y_cm,1])
       coords = norm_x(coords)
       try:
-        new_pixel = images_[0].getpixel((coords[0],coords[1]))
+        new_pixel = images_[0].getpixel((x_cm,y_cm))
         new_image.putpixel((x,y),new_pixel)
       except IndexError:
         pass
@@ -189,11 +188,7 @@ def applyMatrix(h,h_inv):
   print "gerando imagem..."
   new_image = generateNewImage(h,h_inv)
   print "imagem gerada."
-  #print "gerando imagem interpolada..."
-  #new_image_i = generateNewImage(h,h_inv,True)
-  #print "imagem interpolada gerada."
   return new_image
-  #loadImage(new_image_i, " - Interpolada")
   
 
 def returnMatrix(x,x_):
@@ -229,15 +224,9 @@ def calc_matrix():
 def generateImage():
   h = calc_matrix()
   h_inv = np.linalg.inv(h)
-  new_image =  applyMatrix(h_inv,h)
+  new_image =  applyMatrix(h,h_inv)
   loadImage(new_image,'Panorama')
   return 
-
-
-
-
-
-
 
 
 window = tk.Tk()
