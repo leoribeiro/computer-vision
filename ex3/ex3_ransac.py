@@ -107,8 +107,8 @@ def generateNewImage(h,h_inv):
   max_x = max(xs)
   max_y = max(ys)
 
-  print (min_x,max_x)
-  print (min_y,max_y)
+  #print (min_x,max_x)
+  #print (min_y,max_y)
 
   ratio = (max_x - min_x, max_y - min_y)
 
@@ -190,11 +190,11 @@ def compare(filename1, filename2):
     bf = cv2.BFMatcher()
     matches = bf.match(des1,des2)
 
-    matches = sorted(matches, key=lambda val: val.distance)
+    matches_o = sorted(matches, key=lambda val: val.distance)
 
-    print (len(matches))
+    #print (len(matches))
 
-    img3 = drawMatches(img1,kp1,img2,kp2,matches[:25])
+    img3 = drawMatches(img1,kp1,img2,kp2,matches_o[:25])
     img3 = cv2.cvtColor(img3, cv2.COLOR_BGR2RGB)
     fig, ax = plt.subplots(num=None, figsize=(16, 6), dpi=80, facecolor='w', edgecolor='k')
     fig.subplots_adjust(bottom = 0)
@@ -249,7 +249,7 @@ def calc_matrix():
   #print ("h",h)
   return h
 
-def distance_1(x,x_,h,h_inv):
+def symmetric_transfer_error(x,x_,h,h_inv):
   d1 = np.power(distance.euclidean(x,norm_x(np.dot(h_inv,x_))),2)
   #print (x,norm_x(np.dot(h_inv,x_)))
   d2 = np.power(distance.euclidean(x_,norm_x(np.dot(h,x))),2)
@@ -275,7 +275,7 @@ def get_inliers(h):
   for i in range(0,get_num_poits()):
     x = [coords[0][i][0],coords[0][i][1],1]
     x_ = [coords[1][i][0],coords[1][i][1],1]
-    d = distance_1(x,x_,h,h_inv)
+    d = symmetric_transfer_error(x,x_,h,h_inv)
     #print ("d",d)
     
     if d < get_threshold():
@@ -294,11 +294,11 @@ def rensac():
     h = calc_matrix()
     inliers = get_inliers(h)
     if(inliers > best):
-      print ("best",inliers)
+      print ("best number of inliers:",inliers)
       H = h
       best = inliers
     #print (n+1,"executed.")
-  print ("best final",best)
+  print ("Final best:",best)
   return H
 
 
