@@ -213,13 +213,13 @@ def returnMatrix(x,x_):
   #line3 = [-x_[1]*x[0],-x_[1]*x[1],-x_[1]*x[2],x_[0]*x[0],x_[0]*x[1],x_[0]*x[2],0,0,0]
   return line1,line2
 
-def get_poits_random():
+def get_poits_random(num_points):
   global coords
   coords[0] = []
   coords[1] = []
   cont = 0
 
-  while cont < get_num_poits():
+  while cont < num_points:
     m = random.choice(matches)
     img1_idx = m.queryIdx
     img2_idx = m.trainIdx
@@ -230,9 +230,9 @@ def get_poits_random():
     cont += 1
 
 def calc_matrix():
-  get_poits_random()
+  get_poits_random(4)
   a = [] 
-  for i in range(0,get_num_poits()):
+  for i in range(0,4):
     A = returnMatrix([coords[0][i][0],coords[0][i][1],1],[coords[1][i][0],coords[1][i][1],1])
     a.append(A[0])
     a.append(A[1])
@@ -251,10 +251,10 @@ def calc_matrix():
 
 def distance_1(x,x_,h,h_inv):
   d1 = np.power(distance.euclidean(x,norm_x(np.dot(h_inv,x_))),2)
-  print (x,norm_x(np.dot(h_inv,x_)))
+  #print (x,norm_x(np.dot(h_inv,x_)))
   d2 = np.power(distance.euclidean(x_,norm_x(np.dot(h,x))),2)
-  print (x_,norm_x(np.dot(h,x)))
-  print ("-")
+  #print (x_,norm_x(np.dot(h,x)))
+  #print ("-")
   return d1 + d2
 
 def get_num_poits():
@@ -271,14 +271,16 @@ def get_inliers(h):
   inliers = 0
   h_inv = np.linalg.inv(h)
   #print (coords)
+  get_poits_random(get_num_poits())
   for i in range(0,get_num_poits()):
     x = [coords[0][i][0],coords[0][i][1],1]
     x_ = [coords[1][i][0],coords[1][i][1],1]
     d = distance_1(x,x_,h,h_inv)
+    #print ("d",d)
     
     if d < get_threshold():
       inliers += 1
-  print ("--")
+  #print ("--")
 
   return inliers
 
@@ -296,7 +298,7 @@ def rensac():
       H = h
       best = inliers
     #print (n+1,"executed.")
-  print ("best final",inliers)
+  print ("best final",best)
   return H
 
 
