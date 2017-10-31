@@ -21,9 +21,6 @@ import cv2
 import matplotlib
 import random
 import sys
-from scipy.spatial import distance
-
-######### RANSAC
 
 kp1 = []
 kp2 = []
@@ -33,6 +30,7 @@ coords = {}
 images = {}
 images_ = {}
 cont_images = 0
+q_points = 10
 
 
 def center(toplevel):
@@ -192,8 +190,6 @@ def compare(filename1, filename2):
 
     matches = sorted(matches, key=lambda val: val.distance)
 
-    print (len(matches))
-
     img3 = drawMatches(img1,kp1,img2,kp2,matches[:25])
     img3 = cv2.cvtColor(img3, cv2.COLOR_BGR2RGB)
     fig, ax = plt.subplots(num=None, figsize=(16, 6), dpi=80, facecolor='w', edgecolor='k')
@@ -208,99 +204,51 @@ def compare(filename1, filename2):
     return
 
 def returnMatrix(x,x_):
+  print ("x",x)
+  print ("x_",x_)
   line1 = [0,0,0,-x_[2]*x[0],-x_[2]*x[1],-x_[2]*x[2],x_[1]*x[0],x_[1]*x[1],x_[1]*x[2]]
   line2 = [x_[2]*x[0],x_[2]*x[1],x_[2]*x[2],0,0,0,-x_[0]*x[0],-x_[0]*x[1],-x_[0]*x[2]]
   #line3 = [-x_[1]*x[0],-x_[1]*x[1],-x_[1]*x[2],x_[0]*x[0],x_[0]*x[1],x_[0]*x[2],0,0,0]
   return line1,line2
 
-def get_poits_random():
+def get_poits():
+  print ("kp1",kp1)
   global coords
   coords[0] = []
   coords[1] = []
   cont = 0
-
-  while cont < get_num_poits():
-    m = random.choice(matches)
-    img1_idx = m.queryIdx
-    img2_idx = m.trainIdx
-    (x1,y1) = kp1[img1_idx].pt
-    (x2,y2) = kp2[img2_idx].pt
-    coords[0].append((x1,y1))
-    coords[1].append((x2,y2))
-    cont += 1
+  for m in matches:
+        img1_idx = m.queryIdx
+        img2_idx = m.trainIdx
+        (x1,y1) = kp1[img1_idx].pt
+        (x2,y2) = kp2[img2_idx].pt
+        coords[0].append((x1,y1))
+        coords[1].append((x2,y2))
+        cont += 1
+        if(cont == q_points):
+          break
 
 def calc_matrix():
-  get_poits_random()
+  get_poits()
   a = [] 
-  for i in range(0,get_num_poits()):
+  for i in range(0,q_points):
     A = returnMatrix([coords[0][i][0],coords[0][i][1],1],[coords[1][i][0],coords[1][i][1],1])
     a.append(A[0])
     a.append(A[1])
   a = np.array(a)
 
   U, s, V = np.linalg.svd(a, full_matrices=True)
-  #print ("U",U)
-  #print ("s",s)
-  #print ("V",V)
+  print ("U",U)
+  print ("s",s)
+  print ("V",V)
 
+  #c = V[:, -1]
   c = V[-1]
-  #print ("c",c)
+  print ("c",c)
   h = np.array([[c[0],c[1],c[2]],[c[3],c[4],c[5]],[c[6],c[7],c[8]]])
-  #print ("h",h)
+  print ("h",h)
+  #h = []
   return h
-
-def distance_1(x,x_,h,h_inv):
-  d1 = np.power(distance.euclidean(x,norm_x(np.dot(h_inv,x_))),2)
-  print (x,norm_x(np.dot(h_inv,x_)))
-  d2 = np.power(distance.euclidean(x_,norm_x(np.dot(h,x))),2)
-  print (x_,norm_x(np.dot(h,x)))
-  print ("-")
-  return d1 + d2
-
-def get_num_poits():
-  return int(e3.get())
-
-def get_threshold():
-  return int(e2.get())
-
-def get_iterations():
-  return int(e1.get())
-
-
-def get_inliers(h):
-  inliers = 0
-  h_inv = np.linalg.inv(h)
-  #print (coords)
-  for i in range(0,get_num_poits()):
-    x = [coords[0][i][0],coords[0][i][1],1]
-    x_ = [coords[1][i][0],coords[1][i][1],1]
-    d = distance_1(x,x_,h,h_inv)
-    
-    if d < get_threshold():
-      inliers += 1
-  print ("--")
-
-  return inliers
-
-
-def rensac():
-  print ("starting RENSAC...")
-  best = 0
-  H = calc_matrix()
-  for n in range(0,get_iterations()):
-    #print ("Executing ",n+1,"iteration...")
-    h = calc_matrix()
-    inliers = get_inliers(h)
-    if(inliers > best):
-      print ("best",inliers)
-      H = h
-      best = inliers
-    #print (n+1,"executed.")
-  print ("best final",inliers)
-  return H
-
-
-
 
 def compareImages():
   print (path_images)
@@ -308,7 +256,7 @@ def compareImages():
   return
 
 def generateImage():
-  h = rensac()
+  h = calc_matrix()
   h_inv = np.linalg.inv(h)
   new_image = applyMatrix(h,h_inv)
   loadImage(new_image,'Panorama')
@@ -324,23 +272,10 @@ path_images[1] = img1
 path_images[2] = img2
 
 C = tk.Button(window, text ="Exec sift", command = compareImages)
-C.grid(row=1)
+C.grid(row=4)
 
-tk.Label(window, text="Iterations").grid(row=3, column=0)
-tk.Label(window, text="Threshold").grid(row=4, column=0)
-tk.Label(window, text="Points").grid(row=5, column=0)
 
-e1 = tk.Entry(window)
-e1.insert(tk.END, '1000')
-e2 = tk.Entry(window)
-e2.insert(tk.END, '5')
-e3 = tk.Entry(window)
-e3.insert(tk.END, '5')
-e1.grid(row=3, column=1)
-e2.grid(row=4, column=1)
-e3.grid(row=5, column=1)
-
-C = tk.Button(window, text ="Rensac and panoramic", command = generateImage)
+C = tk.Button(window, text ="panoramic", command = generateImage)
 C.grid(row=6)
 
 
