@@ -267,12 +267,12 @@ def get_iterations():
   return int(e1.get())
 
 
-def get_inliers(h):
+def get_inliers(h,num_points):
   inliers = 0
   h_inv = np.linalg.inv(h)
   #print (coords)
-  get_poits_random(get_num_poits())
-  for i in range(0,get_num_poits()):
+  get_poits_random(num_points)
+  for i in range(0,num_points):
     x = [coords[0][i][0],coords[0][i][1],1]
     x_ = [coords[1][i][0],coords[1][i][1],1]
     d = symmetric_transfer_error(x,x_,h,h_inv)
@@ -285,14 +285,46 @@ def get_inliers(h):
   return inliers
 
 
+def get_n_samples(s,e,p):
+  return np.log(1.0-p)/np.log(1-np.power((1-e),s))
+
+
+def adaptative_number_samples():
+
+  s = get_num_poits()
+  global matches
+  total_points = len(matches)
+
+  e = 0.2
+
+  sample_count = 0
+  N = 999999999
+  while N > sample_count:
+    h = calc_matrix()
+    T = int((1 - e)*total_points)
+    print ("T",T)
+    inliers = get_inliers(h,T)
+    print ("inliers",inliers)
+    e = 1 - inliers/total_points
+    N = get_n_samples(s,e,0.99)
+
+  print (N)
+  return int(N)
+
+
+
+
 def rensac():
+  print ("Executing adaptative_number_samples...")
+  N = adaptative_number_samples()
+  print ("Number of samples:",N)
   print ("starting RENSAC...")
   best = 0
   H = calc_matrix()
-  for n in range(0,get_iterations()):
+  for n in range(0,N):
     #print ("Executing ",n+1,"iteration...")
     h = calc_matrix()
-    inliers = get_inliers(h)
+    inliers = get_inliers(h,get_num_poits())
     if(inliers > best):
       print ("best number of inliers:",inliers)
       H = h
