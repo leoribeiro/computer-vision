@@ -21,6 +21,7 @@ import cv2
 import matplotlib
 import random
 import sys
+from sklearn.preprocessing import normalize
 
 ######### RANSAC
 
@@ -357,6 +358,34 @@ def symmetric_transfer_error(x,x_,h,h_inv):
   d2 = np.linalg.norm(x_-norm_x(np.dot(h,x)))
   return d1 + d2
 
+def triangulation(x,x_,F):
+  t = [[1,0,-x[0]],[0,1,-x[1]],[0,0,1]]
+  t_ = [[1,0,-x_[0]],[0,1,-x_[1]],[0,0,1]]
+  F = np.dot(np.dot(np.linalg.inv(np.transpose(t_)),F),np.linalg.inv(t))
+
+  a = np.array(F)
+  b = np.array([0,0,0])
+  e = np.linalg.solve(a,b)
+
+  a = np.array(np.transpose(F))
+  e_ = np.linalg.solve(a,b)
+
+  print "e",e
+  print "e_",e
+  e = [ e[0] / normalize([e[0],e[1]]), e[1] / normalize([e[0],e[1]]), e[2]]
+  e = [ e_[0] / normalize([e_[0],e_[1]]), e_[1] / normalize([e_[0],e_[1]]), e_[2]]
+  print "e",e
+  print "e_",e
+
+  r = [[e[0],e[1],0],[-e[1],e[0],0],[0,0,1]]
+  r_ = [[e_[0],e_[1],0],[-e_[1],e_[0],0],[0,0,1]]
+
+  F = np.dot(np.dot(r_,F),np.transpose(r))
+
+
+def geometric_error(x,x_,F):
+
+
 def get_num_poits():
   return int(e3.get())
 
@@ -458,7 +487,7 @@ tk.Label(window, text="Points").grid(row=5, column=0)
 e2 = tk.Entry(window)
 e2.insert(tk.END, '5')
 e3 = tk.Entry(window)
-e3.insert(tk.END, '4')
+e3.insert(tk.END, '7')
 e2.grid(row=4, column=1)
 e3.grid(row=5, column=1)
 
