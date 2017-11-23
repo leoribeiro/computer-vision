@@ -334,22 +334,32 @@ def calc_matrix(correspondences):
   coords = get_poits_random(N,correspondences)
   coords,t0,t1 = norm_poits(coords)
   
-  F = [] 
+  A = [] 
   for c in coords:
-    f = returnMatrix([c[0][0],c[0][1]],[c[1][0],c[1][1]])
-    F.append(f)
-  F = np.array(F)
+    a = returnMatrix([c[0][0],c[0][1]],[c[1][0],c[1][1]])
+    A.append(a)
+  A = np.array(A)
 
-  U, s, V = np.linalg.svd(F, full_matrices=True)
-  s_ = np.diag(s[0],s[1],0)
-  F_ = np.dot(np.dot(U,s_),V)
+  U, s, V = np.linalg.svd(A, full_matrices=True)
 
-  U, s, V = np.linalg.svd(F_, full_matrices=True)
+  
 
   c = V[-1]
-  h = np.array([[c[0],c[1],c[2]],[c[3],c[4],c[5]],[c[6],c[7],c[8]]])
-  h = np.dot(np.dot(np.linalg.inv(t1),h),t0)
-  return h
+  F = np.array([[c[0],c[1],c[2]],[c[3],c[4],c[5]],[c[6],c[7],c[8]]])
+
+  U, s, V = np.linalg.svd(F, full_matrices=True)
+
+  s_ = np.diag([s[0],s[1],0])
+  print ("U",U)
+  print ("s",s)
+  print ("s_",s_)
+  print ("V",V)
+
+  F = np.dot(np.dot(U,s_),V)
+
+  F = np.dot(np.dot(np.linalg.inv(t1),F),t0)
+  
+  return F
 
 def symmetric_transfer_error(x,x_,h,h_inv):
   x = np.array(x)
@@ -370,20 +380,40 @@ def triangulation(x,x_,F):
   a = np.array(np.transpose(F))
   e_ = np.linalg.solve(a,b)
 
-  print "e",e
-  print "e_",e
+  #print ("e",e)
+  #print ("e_",e)
   e = [ e[0] / normalize([e[0],e[1]]), e[1] / normalize([e[0],e[1]]), e[2]]
   e = [ e_[0] / normalize([e_[0],e_[1]]), e_[1] / normalize([e_[0],e_[1]]), e_[2]]
-  print "e",e
-  print "e_",e
+  #print ("e",e)
+  #print ("e_",e)
 
-  r = [[e[0],e[1],0],[-e[1],e[0],0],[0,0,1]]
-  r_ = [[e_[0],e_[1],0],[-e_[1],e_[0],0],[0,0,1]]
+  P = [[1,0,0,0],[0,1,0,0],[0,0,0,0]]
+  P_ = np.dot([[e_[0],e_[1],0],[-e_[1],e_[0],0],[0,0,1]],F)
+  P_ = [[P_[0][0],P_[0][1],P_[0][2],e_[0]],
+  [P_[1][0],P_[1][1],P_[1][2],e_[1]],
+  [P_[2][0],P_[2][1],P_[2][2],e_[2]]]
 
-  F = np.dot(np.dot(r_,F),np.transpose(r))
+  A = [[x[0]*P[2] - P[0]],
+       [x[1]*P[2] - P[1]],
+       [x_[0]*P_[2] - P_[0]],
+       [x_[1]*P_[2] - P_[1]]]
+
+  U, s, V = np.linalg.svd(A, full_matrices=True)
+
+  c = V[-1]
+  X = np.array([c[0],c[1],c[2],c[3]])
+
+  x_v = np.dot(P,X)
+  x_v_ = np.dot(P_,X)
+
+  return x_v,x_v_
 
 
 def geometric_error(x,x_,F):
+  x_v,x_v_ = triangulation(x,x_,F)
+  d1 = np.linalg.norm(x-norm_x(x_v))
+  d2 = np.linalg.norm(x_-norm_x(x_v_))
+  return d1 + d2
 
 
 def get_num_poits():
@@ -393,14 +423,13 @@ def get_threshold():
   return int(e2.get())
 
 
-def get_inliers(h,correspondences):
+def get_inliers(F,correspondences):
   inliers = 0
-  h_inv = np.linalg.inv(h)
   threshold = get_threshold()
   for c in correspondences:
     x = [c[0][0],c[0][1],1]
     x_ = [c[1][0],c[1][1],1]
-    d = symmetric_transfer_error(x,x_,h,h_inv)
+    d = geometric_error(x,x_,F)
     
     if d < threshold:
       inliers += 1
@@ -427,10 +456,10 @@ def rensac(correspondences):
   while N > sample_count:
     print ("Executing ",sample_count+1,"iteration...")
     print ( "Calculando matriz...")
-    h = calc_matrix(correspondences)
+    f = calc_matrix(correspondences)
     print ("Calculada")
     print ("calculando inliear")
-    inliers = get_inliers(h,correspondences)
+    inliers = get_inliers(f,correspondences)
     e_ = 1 - (inliers*1.0)/total_points
     if(e_ < e):
       e = e_
@@ -442,13 +471,13 @@ def rensac(correspondences):
     print ("calculados")
     if(inliers > best):
       #print ("best number of inliers:",inliers)
-      H = h
+      F = f
       best = inliers
     #print (sample_count+1,"executed.")
     print ("-")
     sample_count += 1
   print ("Final best:",best)
-  return H
+  return F
 
 
 
@@ -460,12 +489,13 @@ def compareImages():
 def generateImage():
   hs = []
   for correspondences in putative_correspondences:
-    h = rensac(correspondences)
-    hs.append(h)
-  print ("gerando imagem...")
-  new_image = generateNewImage(hs,path_images)
-  print ("imagem gerada.")
-  loadImage(new_image,'Panorama')
+    F = rensac(correspondences)
+    hs.append(F)
+  #print ("gerando imagem...")
+  #new_image = generateNewImage(hs,path_images)
+  #print ("imagem gerada.")
+  #loadImage(new_image,'Panorama')
+  print (F)
   return 
 
 window.title("Image transformation")
@@ -478,6 +508,7 @@ for n,f in enumerate(sys.argv[1:]):
 
 compareImages()
 
+
 # C = tk.Button(window, text ="Exec sift", command = compareImages)
 # C.grid(row=1)
 
@@ -487,13 +518,14 @@ tk.Label(window, text="Points").grid(row=5, column=0)
 e2 = tk.Entry(window)
 e2.insert(tk.END, '5')
 e3 = tk.Entry(window)
-e3.insert(tk.END, '7')
+e3.insert(tk.END, '8')
 e2.grid(row=4, column=1)
 e3.grid(row=5, column=1)
 
-C = tk.Button(window, text ="Rensac and panoramic", command = generateImage)
+C = tk.Button(window, text ="Rensac", command = generateImage)
 C.grid(row=6)
 
+generateImage()
 
 
 
