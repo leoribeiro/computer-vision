@@ -203,7 +203,7 @@ def normalizeMatches(matches):
   matches = sorted(matches, key=lambda val: val.distance)
   matches_ = []
   for m in matches:
-    if(m.distance < 250):
+    if(m.distance < 100):
       matches_.append(m)
   return matches_
 
@@ -328,6 +328,23 @@ def get_transform(coords):
 
   return t
 
+def calc_ps(F):
+  U, s, V = np.linalg.svd(F, full_matrices=True)
+  e = V[-1]
+  e_ = U[:,-1]
+
+
+
+  P = [[1,0,0,0],[0,1,0,0],[0,0,1,0]]
+  P_ = np.dot([[e_[0],e_[1],0],[-e_[1],e_[0],0],[0,0,1]],F)
+  P_ = [[P_[0][0],P_[0][1],P_[0][2],e_[0]],
+  [P_[1][0],P_[1][1],P_[1][2],e_[1]],
+  [P_[2][0],P_[2][1],P_[2][2],e_[2]]]
+
+  P = np.array(P)
+  P_ = np.array(P_)
+
+  return P,P_
 
 def calc_matrix(correspondences):
   N = get_num_poits()
@@ -350,14 +367,14 @@ def calc_matrix(correspondences):
   U, s, V = np.linalg.svd(F, full_matrices=True)
 
   s_ = np.diag([s[0],s[1],0])
-  print ("U",U)
-  print ("s",s)
-  print ("s_",s_)
-  print ("V",V)
+  #print ("U",U)
+  #print ("s",s)
+  #print ("s_",s_)
+  #print ("V",V)
 
   F = np.dot(np.dot(U,s_),V)
 
-  F = np.dot(np.dot(np.linalg.inv(t1),F),t0)
+  F = np.dot(np.dot(np.transpose(t1),F),t0)
   
   return F
 
@@ -368,51 +385,55 @@ def symmetric_transfer_error(x,x_,h,h_inv):
   d2 = np.linalg.norm(x_-norm_x(np.dot(h,x)))
   return d1 + d2
 
-def triangulation(x,x_,F):
-  t = [[1,0,-x[0]],[0,1,-x[1]],[0,0,1]]
-  t_ = [[1,0,-x_[0]],[0,1,-x_[1]],[0,0,1]]
-  F = np.dot(np.dot(np.linalg.inv(np.transpose(t_)),F),np.linalg.inv(t))
-
-  a = np.array(F)
-  b = np.array([0,0,0])
-  e = np.linalg.solve(a,b)
-
-  a = np.array(np.transpose(F))
-  e_ = np.linalg.solve(a,b)
-
+def triangulation(x,x_,P,P_):
+  #t = [[1,0,-x[0]],[0,1,-x[1]],[0,0,1]]
+  #t_ = [[1,0,-x_[0]],[0,1,-x_[1]],[0,0,1]]
+  #F = np.dot(np.dot(np.linalg.inv(np.transpose(t_)),F),np.linalg.inv(t))
+  #a = np.array(F)
+  #b = np.array([0,0,0])
+  #e = np.linalg.solve(a,b)
+  #a = np.array(np.transpose(F))
+  #e_ = np.linalg.solve(a,b)
   #print ("e",e)
   #print ("e_",e)
-  e = [ e[0] / normalize([e[0],e[1]]), e[1] / normalize([e[0],e[1]]), e[2]]
-  e = [ e_[0] / normalize([e_[0],e_[1]]), e_[1] / normalize([e_[0],e_[1]]), e_[2]]
+  #e = [ e[0] / normalize([[e[0]],[e[1]]]), e[1] / normalize([[e[0]],[e[1]]]), e[2]]
+  #e = [ e_[0] / normalize([[e_[0]],[e_[1]]]), e_[1] / normalize([[e_[0]],[e_[1]]]), e_[2]]
   #print ("e",e)
   #print ("e_",e)
 
-  P = [[1,0,0,0],[0,1,0,0],[0,0,0,0]]
-  P_ = np.dot([[e_[0],e_[1],0],[-e_[1],e_[0],0],[0,0,1]],F)
-  P_ = [[P_[0][0],P_[0][1],P_[0][2],e_[0]],
-  [P_[1][0],P_[1][1],P_[1][2],e_[1]],
-  [P_[2][0],P_[2][1],P_[2][2],e_[2]]]
+  #print ("F",F)
 
-  A = [[x[0]*P[2] - P[0]],
-       [x[1]*P[2] - P[1]],
-       [x_[0]*P_[2] - P_[0]],
-       [x_[1]*P_[2] - P_[1]]]
-
+  #print ("x",x,"x_",x_,"P[2]",P[2])
+  A = [x[0]*P[2] - P[0],
+       x[1]*P[2] - P[1],
+       x_[0]*P_[2] - P_[0],
+       x_[1]*P_[2] - P_[1]]
+  A = np.array(A)
+  #print ("A",A)
   U, s, V = np.linalg.svd(A, full_matrices=True)
 
   c = V[-1]
   X = np.array([c[0],c[1],c[2],c[3]])
 
+  #print ("X",X)
+  #print ("P",P)
+
   x_v = np.dot(P,X)
   x_v_ = np.dot(P_,X)
 
+  #print ("x",x)
+  #print ("x_",x_)
+  #print ("x_v",x_v)
+  #print ("x_v_",x_v_)
   return x_v,x_v_
 
 
-def geometric_error(x,x_,F):
-  x_v,x_v_ = triangulation(x,x_,F)
+def geometric_error(x,x_,p,p_):
+  x_v,x_v_ = triangulation(x,x_,p,p_)
   d1 = np.linalg.norm(x-norm_x(x_v))
   d2 = np.linalg.norm(x_-norm_x(x_v_))
+  #d1 = np.linalg.norm(x-x_v)
+  #d2 = np.linalg.norm(x_-x_v_)
   return d1 + d2
 
 
@@ -423,14 +444,14 @@ def get_threshold():
   return int(e2.get())
 
 
-def get_inliers(F,correspondences):
+def get_inliers(F,correspondences,p,p_):
   inliers = 0
   threshold = get_threshold()
   for c in correspondences:
     x = [c[0][0],c[0][1],1]
     x_ = [c[1][0],c[1][1],1]
-    d = geometric_error(x,x_,F)
-    
+    d = geometric_error(x,x_,p,p_)
+    #print ("d",d)
     if d < threshold:
       inliers += 1
 
@@ -444,7 +465,7 @@ def get_n_samples(s,e,p):
 def rensac(correspondences):
   
   total_points = len(correspondences)
-  s = 4
+  s = get_num_poits()
   print ("Executing adaptative_number_samples...")
   #N = adaptative_number_samples()
   N = 99999999
@@ -457,9 +478,12 @@ def rensac(correspondences):
     print ("Executing ",sample_count+1,"iteration...")
     print ( "Calculando matriz...")
     f = calc_matrix(correspondences)
+    p,p_ = calc_ps(f)
     print ("Calculada")
     print ("calculando inliear")
-    inliers = get_inliers(f,correspondences)
+    print ("s",s)
+    print ("e",e)
+    inliers = get_inliers(f,correspondences,p,p_)
     e_ = 1 - (inliers*1.0)/total_points
     if(e_ < e):
       e = e_
@@ -470,14 +494,15 @@ def rensac(correspondences):
     
     print ("calculados")
     if(inliers > best):
-      #print ("best number of inliers:",inliers)
+      print ("best number of inliers:",inliers)
       F = f
+      P,P_ = p,p_
       best = inliers
-    #print (sample_count+1,"executed.")
+    print (sample_count+1,"executed.")
     print ("-")
     sample_count += 1
   print ("Final best:",best)
-  return F
+  return F,P,P_
 
 
 
@@ -487,15 +512,15 @@ def compareImages():
   return
 
 def generateImage():
-  hs = []
   for correspondences in putative_correspondences:
-    F = rensac(correspondences)
-    hs.append(F)
+    F,P,P_ = rensac(correspondences)
   #print ("gerando imagem...")
   #new_image = generateNewImage(hs,path_images)
   #print ("imagem gerada.")
   #loadImage(new_image,'Panorama')
   print (F)
+  print (P)
+  print (P_)
   return 
 
 window.title("Image transformation")
@@ -516,7 +541,7 @@ tk.Label(window, text="Threshold").grid(row=4, column=0)
 tk.Label(window, text="Points").grid(row=5, column=0)
 
 e2 = tk.Entry(window)
-e2.insert(tk.END, '5')
+e2.insert(tk.END, '30')
 e3 = tk.Entry(window)
 e3.insert(tk.END, '8')
 e2.grid(row=4, column=1)
