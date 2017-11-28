@@ -38,7 +38,6 @@ def center(toplevel):
     y = h/2 - size[1]/2
     toplevel.geometry("%dx%d+%d+%d" % (size + (x, y)))
 
-
 def norm_x(x):
   if(x[2] == 0):
     return x
@@ -55,21 +54,6 @@ def loadImage(image,title):
    plt.show()
    return
 
-def get_points_corners(h,img):
-    x = np.dot(h,[0,0,1])
-    x1 = norm_x(x)
-
-    x = np.dot(h,[0,img.size[1] - 1,1])
-    x2 = norm_x(x)
-
-    x = np.dot(h,[img.size[0] - 1,img.size[1] - 1,1])
-    x3 = norm_x(x)
-
-    x = np.dot(h,[img.size[0] - 1,0,1])
-    x4 = norm_x(x)
-
-    return x1,x2,x3,x4
-
 def convert_points(h,points):
   xs = []
   for p in points:
@@ -78,51 +62,44 @@ def convert_points(h,points):
     xs.append(x)
   return xs
 
-def generateNewImage(hs,filenames):
+def generateNewImage(h,image):
 
-  middleIndex = int((len(filenames) - 1)/2)
-  print ("middleIndex",middleIndex)
-  
-  width = 0
-  img = []
-  for k,f in filenames.items():
-    img_ = Image.open(f)
-    img.append(img_)
-    width += img_.size[0]
-    height = img_.size[1]
+  h_inv = np.linalg.inv(h)
 
-  xs_l = []
+  width = image.size[0]
+  height = image.size[1]
 
-  for plano in range(0,middleIndex):
-    h = hs[plano]
-    x1,x2,x3,x4 = get_points_corners(h,img[plano])
-    xs_l = convert_points(h,xs_l)
-    xs_l.extend([x1,x2,x3,x4])
-
-  xs_r = []
-  for plano in range(len(hs)-1,middleIndex-1,-1):
-    h_inv = np.linalg.inv(hs[plano])
-    x1,x2,x3,x4 = get_points_corners(h_inv,img[plano])
-    xs_r = convert_points(h_inv,xs_r)
-    xs_r.extend([x1,x2,x3,x4])
-
-  xs_ = xs_r + xs_l
   xs = []
   ys = []
-  for x in xs_:
-    xs.append(x[0])
-    ys.append(x[1])
-    
 
-  xs.append(0)
-  xs.append(img[middleIndex].size[0] - 1)
-  ys.append(0)
-  ys.append(img[middleIndex].size[1] - 1)
+  x = np.dot(h,[0,0,1])
+  x = norm_x(x)
+  xs.append(x[0])
+  ys.append(x[1])
+
+
+  x = np.dot(h,[0,height - 1,1])
+  x = norm_x(x)
+  xs.append(x[0])
+  ys.append(x[1])
+
+  x = np.dot(h,[width - 1,height - 1,1])
+  x = norm_x(x)
+  xs.append(x[0])
+  ys.append(x[1])
+
+  x = np.dot(h,[width - 1,0,1])
+  x = norm_x(x)
+  xs.append(x[0])
+  ys.append(x[1])
 
   min_x = min(xs)
   min_y = min(ys)
   max_x = max(xs)
   max_y = max(ys)
+
+  print (min_x,max_x)
+  print (min_y,max_y)
 
   #print (min_x,max_x)
   #print (min_y,max_y)
@@ -130,7 +107,10 @@ def generateNewImage(hs,filenames):
   ratio = (max_x - min_x, max_y - min_y)
 
   n_width = width
-  n_height = int(n_width * (ratio[1] / ratio[0]))
+  #n_height = int(n_width * (ratio[1] / ratio[0]))
+  n_height = height
+  print ("n_width",n_width)
+  print ("n_height",n_height)
 
   new_image = Image.new('RGB', (n_width, n_height))
 
@@ -142,40 +122,18 @@ def generateNewImage(hs,filenames):
   for x in range(n_width):
     y_cm = min_y
     for y in range(n_height):
-      for k in range(0,len(hs)+1):
-        if(k == middleIndex):
-          put_pixel(x_cm,y_cm,x,y,img[k],new_image)
-        else:
-          h = apply_matrix_recursive(k,middleIndex,hs)
-          coords = np.dot(h,[x_cm,y_cm,1])
-          coords = norm_x(coords)
-          put_pixel(coords[0],coords[1],x,y,img[k],new_image)
+      coords = np.dot(h_inv,[x_cm,y_cm,1])
+      coords = norm_x(coords)
+      try:
+        new_pixel = image.getpixel((coords[0],coords[1]))
+        new_image.putpixel((x,y),new_pixel)
+      except IndexError:
+        pass
       y_cm += step_y
     x_cm += step_x
 
   return new_image
 
-def apply_matrix_recursive(k,m,hs):
-  if(k > m):
-    h_ = hs[k-1]
-    for h in range(k-2,m-1,-1):
-      h_ = np.dot(h_,hs[h])
-  else:
-    h_ = np.linalg.inv(hs[k])
-    for h in range(k+1,m):
-      h_inv = np.linalg.inv(hs[h])
-      h_ = np.dot(h_,h_inv)
-  return h_
-
-
-
-
-def put_pixel(x_,y_,x,y,image,new_image):
-  try:
-    new_pixel = image.getpixel((x_,y_))
-    new_image.putpixel((x,y),new_pixel)
-  except IndexError:
-    pass
 
 def drawMatches(img1, kp1, img2, kp2, matches):
 
@@ -333,6 +291,9 @@ def calc_ps(F):
   e = V[-1]
   e_ = U[:,-1]
 
+  e = norm_x(e)
+  e_ = norm_x(e_)
+
 
 
   P = [[1,0,0,0],[0,1,0,0],[0,0,1,0]]
@@ -344,7 +305,7 @@ def calc_ps(F):
   P = np.array(P)
   P_ = np.array(P_)
 
-  return P,P_
+  return P,P_,e_
 
 def calc_matrix(correspondences):
   N = get_num_poits()
@@ -440,10 +401,10 @@ def get_3dpoint(x,x_,P,P_):
 
   return X
 
-def ImageRectification(coords,ep,P,P_,F):
+def ImageRectification(coords,e_,P,P_,F):
   
   img_ = Image.open(path_images[0])
-  width += img_.size[0]
+  width = img_.size[0]
   height = img_.size[1]
   centerx = int(width/2)
   centery = int(height/2)
@@ -456,10 +417,10 @@ def ImageRectification(coords,ep,P,P_,F):
   # cos(a)*(epx-x0)-sin(a)*(epy-y0)=f
   # sin(a)*(epx-x0)+cos(a)*(epy-y0)=0
 
-  alpha = np.arctan(-(ep[1]/ep[2] - centery)/(ep[0]/ep[2]-centerx))
-  f = np.cos(alpha)*(ep[0]/ep[2]-centerx)-np.sin(alpha)*(ep[1]/ep[2]-centery)
+  alpha = np.arctan(-(e_[1]/e_[2] - centery)/(e_[0]/e_[2]-centerx))
+  f = np.cos(alpha)*(e_[0]/e_[2]-centerx)-np.sin(alpha)*(e_[1]/e_[2]-centery)
 
-  R = [[np.cos(alpha),-np.sin(alpha),0],[sin(alpha),cos(alpha),0],[0,0,1]]
+  R = [[np.cos(alpha),-np.sin(alpha),0],[np.sin(alpha),np.cos(alpha),0],[0,0,1]]
 
   # Set G = [1 0 0; 0 1 0; -1/f 0 1]
   G = [[1,0,0],[0,1,0],[-1/f,0,1]]
@@ -477,29 +438,66 @@ def ImageRectification(coords,ep,P,P_,F):
 
   H_ = np.dot(t2,H_)
   H_ = np.multiply(1/H_[2][2],H_)
+  print ("H_",H_)
 
   # M = P'P+ 
-  M = np.dot(P_,np.linalg.inv(P))
+  print ("P",P)
+  print ("P_",P_)
+  M = np.dot(P_,np.linalg.pinv(P))
   # H0 = H'M 
   H0 = np.dot(H_,M)
 
   A = [] 
   B = []
   # for Ha solve linear equations
+  #coords = get_poits_random(3,coords)
   for c in coords:
     x = [c[0][0],c[0][1],1]
     x_ = [c[1][0],c[1][1],1]
     # transform x: H0x 
     x_n = np.dot(H0,x)
+    x_n = norm_x(x_n)
     # transform x': H'x' 
     x_n_ = np.dot(H_,x_)
-    a = [x_n[0],x_n[1],1]
+    x_n_ = norm_x(x_n_)
+    a = x_n
     A.append(a)
     B.append(x_n_[0])
   
   A = np.array(A)
   B = np.array(B)
-  t = np.linalg.solve(a,b)
+  #t = np.linalg.solve(A,B)
+  result,resids,rank,s = np.linalg.lstsq(A,B)
+  t = result
+
+  print ("t",t)
+
+  # Set Ha = [a b c; 0 1 0; 0 0 1]
+  Ha = np.array([t,[0,1,0],[0,0,1]])
+  print ("Ha",Ha) 
+
+  # H = HaH0
+  H = np.dot(Ha,H0)
+  H = np.multiply(1/H[2][2],H)
+  print ("H",H)
+
+  # update F = H'^{-t} F H^{-1}
+  H_inv_ = np.linalg.inv(H_)
+  H_inv = np.linalg.inv(H)
+
+  F = np.dot(np.transpose(H_inv_),F)
+  F = np.dot(F,H_inv)
+  F = np.multiply(1/F[2][2],F)
+  print ("F",F)
+
+  H_inv_ = np.multiply(1/H_inv_[2][2],H_inv_)
+  H_inv = np.multiply(1/H_inv[2][2],H_inv)
+
+  return H,H_
+
+
+
+
 
 
 
@@ -553,7 +551,7 @@ def rensac(correspondences):
     print ("Executing ",sample_count+1,"iteration...")
     print ( "Calculando matriz...")
     f = calc_matrix(correspondences)
-    p,p_ = calc_ps(f)
+    p,p_,e__ = calc_ps(f)
     print ("Calculada")
     print ("calculando inliear")
     print ("s",s)
@@ -571,13 +569,13 @@ def rensac(correspondences):
     if(inliers > best):
       print ("best number of inliers:",inliers)
       F = f
-      P,P_ = p,p_
+      P,P_,E_ = p,p_,e__
       best = inliers
     print (sample_count+1,"executed.")
     print ("-")
     sample_count += 1
   print ("Final best:",best)
-  return F,P,P_
+  return F,P,P_,E_
 
 def reconstruct3DPt(correspondences,P,P_):
   new_correspondences = []
@@ -595,13 +593,23 @@ def compareImages():
 
 def generateImage():
   correspondences =  putative_correspondences[0]
-  F,P,P_ = rensac(correspondences)
+  F,P,P_,e_ = rensac(correspondences)
   n_coords = reconstruct3DPt(correspondences,P,P_)
+  H,H_ = ImageRectification(correspondences,e_,P,P_,F)
 
+  img1 = Image.open(path_images[0])
+  img2 = Image.open(path_images[1])
+  print ("gerando imagem1 retificada...")
+  img1_retified = generateNewImage(H,img1)
+  print ("imagem gerada.")
+  print ("gerando imagem2 retificada...")
+  img2_retified = generateNewImage(H_,img2)
+  print ("imagem gerada.")
   #print ("gerando imagem...")
   #new_image = generateNewImage(hs,path_images)
   #print ("imagem gerada.")
-  #loadImage(new_image,'Panorama')
+  loadImage(img1_retified,'img1_retified')
+  loadImage(img2_retified,'img2_retified')
   print (F)
   print (P)
   print (P_)
@@ -625,7 +633,7 @@ tk.Label(window, text="Threshold").grid(row=4, column=0)
 tk.Label(window, text="Points").grid(row=5, column=0)
 
 e2 = tk.Entry(window)
-e2.insert(tk.END, '30')
+e2.insert(tk.END, '25')
 e3 = tk.Entry(window)
 e3.insert(tk.END, '8')
 e2.grid(row=4, column=1)
