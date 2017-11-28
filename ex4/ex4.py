@@ -413,7 +413,7 @@ def triangulation(x,x_,P,P_):
   U, s, V = np.linalg.svd(A, full_matrices=True)
 
   c = V[-1]
-  X = np.array([c[0],c[1],c[2],c[3]])
+  X = np.array([c[0]/c[3],c[1]/c[3],c[2]/c[3],1])
 
   #print ("X",X)
   #print ("P",P)
@@ -426,6 +426,81 @@ def triangulation(x,x_,P,P_):
   #print ("x_v",x_v)
   #print ("x_v_",x_v_)
   return x_v,x_v_
+
+def get_3dpoint(x,x_,P,P_):
+  A = [x[0]*P[2] - P[0],
+       x[1]*P[2] - P[1],
+       x_[0]*P_[2] - P_[0],
+       x_[1]*P_[2] - P_[1]]
+  A = np.array(A)
+  U, s, V = np.linalg.svd(A, full_matrices=True)
+
+  c = V[-1]
+  X = np.array([c[0]/c[3],c[1]/c[3],c[2]/c[3]])
+
+  return X
+
+def ImageRectification(coords,ep,P,P_,F):
+  
+  img_ = Image.open(path_images[0])
+  width += img_.size[0]
+  height = img_.size[1]
+  centerx = int(width/2)
+  centery = int(height/2)
+
+  T = [[1,0,-centerx],[0,1,-centery],[0,0,1]]
+  
+  # ep: [epx epy 1]' is mapped (by G) into [epx-x0 epy-y0 1]'
+  # Set rotation matrix R = [cos(a) -sin(a) 0; sin(a) cos(a) 0; 0 0 1]
+  # s.t. R[epx-x0, epy-y0, 1]'=[f 0 1]'
+  # cos(a)*(epx-x0)-sin(a)*(epy-y0)=f
+  # sin(a)*(epx-x0)+cos(a)*(epy-y0)=0
+
+  alpha = np.arctan(-(ep[1]/ep[2] - centery)/(ep[0]/ep[2]-centerx))
+  f = np.cos(alpha)*(ep[0]/ep[2]-centerx)-np.sin(alpha)*(ep[1]/ep[2]-centery)
+
+  R = [[np.cos(alpha),-np.sin(alpha),0],[sin(alpha),cos(alpha),0],[0,0,1]]
+
+  # Set G = [1 0 0; 0 1 0; -1/f 0 1]
+  G = [[1,0,0],[0,1,0],[-1/f,0,1]]
+
+  # H' = GRT
+  # H' will send e' to [f 0 0]' 
+  H_ = np.dot(np.dot(G,R),T)
+
+
+  x_new = np.dot(H_,[centerx,centery,1])
+  x_new = norm_x(x_new)
+
+  # T2 = [1 0 centerx-xpnew.x; 0 1 centery-xpnew.y; 0 0 1]; 
+  t2 = [[1,0,x_new[0]],[0,1,x_new[1]],[0,0,1]]
+
+  H_ = np.dot(t2,H_)
+  H_ = np.multiply(1/H_[2][2],H_)
+
+  # M = P'P+ 
+  M = np.dot(P_,np.linalg.inv(P))
+  # H0 = H'M 
+  H0 = np.dot(H_,M)
+
+  A = [] 
+  B = []
+  # for Ha solve linear equations
+  for c in coords:
+    x = [c[0][0],c[0][1],1]
+    x_ = [c[1][0],c[1][1],1]
+    # transform x: H0x 
+    x_n = np.dot(H0,x)
+    # transform x': H'x' 
+    x_n_ = np.dot(H_,x_)
+    a = [x_n[0],x_n[1],1]
+    A.append(a)
+    B.append(x_n_[0])
+  
+  A = np.array(A)
+  B = np.array(B)
+  t = np.linalg.solve(a,b)
+
 
 
 def geometric_error(x,x_,p,p_):
@@ -504,7 +579,14 @@ def rensac(correspondences):
   print ("Final best:",best)
   return F,P,P_
 
-
+def reconstruct3DPt(correspondences,P,P_):
+  new_correspondences = []
+  for c in correspondences:
+    x = [c[0][0],c[0][1],1]
+    x_ = [c[1][0],c[1][1],1]
+    X = get_3dpoint(x,x_,P,P_)
+    new_correspondences.append([x,x_,X])
+  return new_correspondences
 
 def compareImages():
   print ("Imagens:",path_images)
@@ -512,8 +594,10 @@ def compareImages():
   return
 
 def generateImage():
-  for correspondences in putative_correspondences:
-    F,P,P_ = rensac(correspondences)
+  correspondences =  putative_correspondences[0]
+  F,P,P_ = rensac(correspondences)
+  n_coords = reconstruct3DPt(correspondences,P,P_)
+
   #print ("gerando imagem...")
   #new_image = generateNewImage(hs,path_images)
   #print ("imagem gerada.")
