@@ -340,7 +340,7 @@ def calc_matrix(correspondences):
   F = np.dot(np.dot(np.transpose(t1),F),t0)
   F = np.multiply(1/F[2][2],F)
   
-  return F
+  return F,coords
 
 def symmetric_transfer_error(x,x_,h,h_inv):
   x = np.array(x)
@@ -387,7 +387,7 @@ def get_3dpoint(x,x_,P,P_):
 
   return X
 
-def ImageRectification(coords,e_,P,P_,F):
+def ImageRectification(coords,e_,P,P_,F,C):
   
   img_ = Image.open(path_images[0])
   width = img_.size[0]
@@ -437,7 +437,7 @@ def ImageRectification(coords,e_,P,P_,F):
   B = []
   # for Ha solve linear equations
   #coords = get_poits_random(3,coords)
-  for c in coords:
+  for c in C:
     x = [c[0][0],c[0][1],1]
     x_ = [c[1][0],c[1][1],1]
     # transform x: H0x 
@@ -479,7 +479,7 @@ def ImageRectification(coords,e_,P,P_,F):
   H_inv_ = np.multiply(1/H_inv_[2][2],H_inv_)
   H_inv = np.multiply(1/H_inv[2][2],H_inv)
 
-  return H,H_
+  return H,H_,F
 
 def geometric_error(x,x_,p,p_):
   x_v,x_v_ = triangulation(x,x_,p,p_)
@@ -530,7 +530,7 @@ def rensac(correspondences):
   while N > sample_count:
     print ("Executing ",sample_count+1,"iteration...")
     print ( "Calculando matriz...")
-    f = calc_matrix(correspondences)
+    f,coords = calc_matrix(correspondences)
     p,p_,e__ = calc_ps(f)
     print ("Calculada")
     print ("calculando inliear")
@@ -549,13 +549,14 @@ def rensac(correspondences):
     if(inliers > best):
       print ("best number of inliers:",inliers)
       F = f
+      C = coords
       P,P_,E_ = p,p_,e__
       best = inliers
     print (sample_count+1,"executed.")
     print ("-")
     sample_count += 1
   print ("Final best:",best)
-  return F,P,P_,E_
+  return F,P,P_,E_,C
 
 def reconstruct3DPt(correspondences,P,P_):
   new_correspondences = []
@@ -575,9 +576,9 @@ def generateImage():
   correspondences =  putative_correspondences[0]
   print ("quantidade de pontos:",len(correspondences))
 
-  F,P,P_,e_ = rensac(correspondences)
+  F,P,P_,e_,C = rensac(correspondences)
   n_coords = reconstruct3DPt(correspondences,P,P_)
-  H,H_ = ImageRectification(correspondences,e_,P,P_,F)
+  H,H_,F = ImageRectification(correspondences,e_,P,P_,F,C)
 
   img1 = Image.open(path_images[0])
   img2 = Image.open(path_images[1])
