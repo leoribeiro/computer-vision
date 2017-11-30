@@ -16,7 +16,7 @@ coords = {}
 images = {}
 images_ = {}
 cont_images = 0
-q_points = 4
+q_points = 10
 
 
 def center(toplevel):

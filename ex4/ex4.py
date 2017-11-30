@@ -158,11 +158,13 @@ def drawMatches(img1, kp1, img2, kp2, matches):
     return out
 
 def normalizeMatches(matches):
-  matches = sorted(matches, key=lambda val: val.distance)
+  #matches = sorted(matches, key=lambda val: val.distance)
   matches_ = []
-  for m in matches:
-    if(m.distance < 100):
+  for m,n in matches:
+    #if(m.distance < 70):
+    if m.distance < 0.5*n.distance:
       matches_.append(m)
+      print (m.distance)
   return matches_
 
 
@@ -184,10 +186,16 @@ def compare(filenames):
     # BFMatcher with default params
     bf = cv2.BFMatcher()
 
+    FLANN_INDEX_KDTREE = 0
+    index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+    search_params = dict(checks = 50)
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
+
     matches = []
     for n,d in enumerate(des):
       try:
-        matches_ = bf.match(des[n],des[n+1])
+        matches_ = flann.knnMatch(des[n],des[n+1],k=2)
+        #matches_ = bf.match(des[n],des[n+1])
         matches_ = normalizeMatches(matches_)
         matches.append(matches_)
       except IndexError:
@@ -201,16 +209,16 @@ def compare(filenames):
 
     # print ("Matches < 200:",len(matches_))
 
-    # img3 = drawMatches(img1,kp1,img2,kp2,matches_[-25:])
-    # img3 = cv2.cvtColor(img3, cv2.COLOR_BGR2RGB)
-    # fig, ax = plt.subplots(num=None, figsize=(16, 6), dpi=80, facecolor='w', edgecolor='k')
-    # fig.subplots_adjust(bottom = 0)
-    # fig.subplots_adjust(top = 1)
-    # fig.subplots_adjust(right = 1)
-    # fig.subplots_adjust(left = 0)
-    # plt.imshow(img3) 
-    # plt.ion()
-    # plt.show()
+    img3 = drawMatches(img[0],kp[0],img[1],kp[1],matches[0])
+    img3 = cv2.cvtColor(img3, cv2.COLOR_BGR2RGB)
+    fig, ax = plt.subplots(num=None, figsize=(16, 6), dpi=80, facecolor='w', edgecolor='k')
+    fig.subplots_adjust(bottom = 0)
+    fig.subplots_adjust(top = 1)
+    fig.subplots_adjust(right = 1)
+    fig.subplots_adjust(left = 0)
+    plt.imshow(img3) 
+    plt.ion()
+    plt.show()
 
     return
 
@@ -572,6 +580,9 @@ def compareImages():
 
 def generateImage():
   correspondences =  putative_correspondences[0]
+  print ("quantidade de pontos:",len(correspondences))
+  input("")
+
   F,P,P_,e_ = rensac(correspondences)
   n_coords = reconstruct3DPt(correspondences,P,P_)
   H,H_ = ImageRectification(correspondences,e_,P,P_,F)
@@ -612,7 +623,7 @@ tk.Label(window, text="Threshold").grid(row=4, column=0)
 tk.Label(window, text="Points").grid(row=5, column=0)
 
 e2 = tk.Entry(window)
-e2.insert(tk.END, '25')
+e2.insert(tk.END, '30')
 e3 = tk.Entry(window)
 e3.insert(tk.END, '8')
 e2.grid(row=4, column=1)
