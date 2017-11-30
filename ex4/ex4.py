@@ -158,11 +158,10 @@ def drawMatches(img1, kp1, img2, kp2, matches):
     return out
 
 def normalizeMatches(matches):
-  #matches = sorted(matches, key=lambda val: val.distance)
+  matches = sorted(matches, key=lambda val: val.distance)
   matches_ = []
-  for m,n in matches:
-    #if(m.distance < 70):
-    if m.distance < 0.5*n.distance:
+  for m in matches:
+    if(m.distance < 50):
       matches_.append(m)
       print (m.distance)
   return matches_
@@ -186,16 +185,10 @@ def compare(filenames):
     # BFMatcher with default params
     bf = cv2.BFMatcher()
 
-    FLANN_INDEX_KDTREE = 0
-    index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-    search_params = dict(checks = 50)
-    flann = cv2.FlannBasedMatcher(index_params, search_params)
-
     matches = []
     for n,d in enumerate(des):
       try:
-        matches_ = flann.knnMatch(des[n],des[n+1],k=2)
-        #matches_ = bf.match(des[n],des[n+1])
+        matches_ = bf.match(des[n],des[n+1])
         matches_ = normalizeMatches(matches_)
         matches.append(matches_)
       except IndexError:
@@ -581,7 +574,6 @@ def compareImages():
 def generateImage():
   correspondences =  putative_correspondences[0]
   print ("quantidade de pontos:",len(correspondences))
-  input("")
 
   F,P,P_,e_ = rensac(correspondences)
   n_coords = reconstruct3DPt(correspondences,P,P_)
