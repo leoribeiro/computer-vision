@@ -429,9 +429,14 @@ def ImageRectification(coords,e_,P,P_,F,C):
   # M = P'P+ 
   print ("P",P)
   print ("P_",P_)
+  print ("p inv",np.linalg.pinv(P))
   M = np.dot(P_,np.linalg.pinv(P))
+  print ("M",M)
   # H0 = H'M 
   H0 = np.dot(H_,M)
+  H0 = np.multiply(1/H0[2][2],H0)
+  print ("H0",H0)
+
 
   A = [] 
   B = []
@@ -464,6 +469,7 @@ def ImageRectification(coords,e_,P,P_,F,C):
 
   # H = HaH0
   H = np.dot(Ha,H0)
+  #H = H0
   H = np.multiply(1/H[2][2],H)
   print ("H",H)
 
