@@ -299,7 +299,7 @@ def calc_ps(F):
 
   P = [[1,0,0,0],[0,1,0,0],[0,0,1,0]]
   # pag 581
-  P_ = np.dot([[0,-e_[2],e_[1]],[e_[2],0,-e_[0]],[-e_[1],e_[0],1]],F)
+  P_ = np.dot([[0,-e_[2],e_[1]],[e_[2],0,-e_[0]],[-e_[1],e_[0],0]],F)
   P_ = [[P_[0][0],P_[0][1],P_[0][2],e_[0]],
   [P_[1][0],P_[1][1],P_[1][2],e_[1]],
   [P_[2][0],P_[2][1],P_[2][2],e_[2]]]
@@ -312,6 +312,7 @@ def calc_ps(F):
 def calc_matrix(correspondences):
   N = get_num_poits()
   coords = get_poits_random(N,correspondences)
+  coords = correspondences
   coords,t0,t1 = norm_poits(coords)
   
   A = [] 
@@ -392,10 +393,11 @@ def ImageRectification(coords,e_,P,P_,F,C):
   img_ = Image.open(path_images[0])
   width = img_.size[0]
   height = img_.size[1]
-  centerx = int(width/2)
-  centery = int(height/2)
+  centerx = width/2.0
+  centery = height/2.0
 
-  T = [[1,0,-centerx],[0,1,-centery],[0,0,1]]
+  T = np.array([[1,0,-centerx],[0,1,-centery],[0,0,1]])
+  T = T.astype(np.float64)
   
   # ep: [epx epy 1]' is mapped (by G) into [epx-x0 epy-y0 1]'
   # Set rotation matrix R = [cos(a) -sin(a) 0; sin(a) cos(a) 0; 0 0 1]
@@ -403,13 +405,14 @@ def ImageRectification(coords,e_,P,P_,F,C):
   # cos(a)*(epx-x0)-sin(a)*(epy-y0)=f
   # sin(a)*(epx-x0)+cos(a)*(epy-y0)=0
 
-  alpha = np.arctan(-(e_[1]/e_[2] - centery)/(e_[0]/e_[2]-centerx))
-  f = np.cos(alpha)*(e_[0]/e_[2]-centerx)-np.sin(alpha)*(e_[1]/e_[2]-centery)
+  alpha = np.arctan(-(e_[1] - centery)/(e_[0]-centerx))
+  f = np.cos(alpha)*(e_[0]-centerx)-np.sin(alpha)*(e_[1]-centery)
 
-  R = [[np.cos(alpha),-np.sin(alpha),0],[np.sin(alpha),np.cos(alpha),0],[0,0,1]]
-
+  R = np.array([[np.cos(alpha),-np.sin(alpha),0],[np.sin(alpha),np.cos(alpha),0],[0,0,1]])
+  R = R.astype(np.float64)
   # Set G = [1 0 0; 0 1 0; -1/f 0 1]
-  G = [[1,0,0],[0,1,0],[-1/f,0,1]]
+  G = np.array([[1,0,0],[0,1,0],[-1.0/f,0,1]])
+  G = G.astype(np.float64)
 
   # H' = GRT
   # H' will send e' to [f 0 0]' 
@@ -420,7 +423,8 @@ def ImageRectification(coords,e_,P,P_,F,C):
   x_new = norm_x(x_new)
 
   # T2 = [1 0 centerx-xpnew.x; 0 1 centery-xpnew.y; 0 0 1]; 
-  t2 = [[1,0,x_new[0]],[0,1,x_new[1]],[0,0,1]]
+  t2 = np.array([[1,0,centerx - x_new[0]],[0,1,centery - x_new[1]],[0,0,1]])
+  t2 = t2.astype(np.float64)
 
   H_ = np.dot(t2,H_)
   H_ = np.multiply(1/H_[2][2],H_)
@@ -430,7 +434,8 @@ def ImageRectification(coords,e_,P,P_,F,C):
   print ("P",P)
   print ("P_",P_)
   print ("p inv",np.linalg.pinv(P))
-  M = np.dot(P_,np.linalg.pinv(P))
+  #M = np.dot(P_,np.linalg.pinv(P))
+  M = np.dot(P_,np.dot(np.transpose(P),np.linalg.inv(np.dot(P,np.transpose(P)))))
   print ("M",M)
   # H0 = H'M 
   H0 = np.dot(H_,M)
@@ -460,6 +465,7 @@ def ImageRectification(coords,e_,P,P_,F,C):
   #t = np.linalg.solve(A,B)
   result,resids,rank,s = np.linalg.lstsq(A,B)
   t = result
+  #t = np.dot(np.dot(np.linalg.inv(np.dot(np.transpose(A),A)),np.transpose(A)),B)
 
   print ("t",t)
 
@@ -469,6 +475,16 @@ def ImageRectification(coords,e_,P,P_,F,C):
 
   # H = HaH0
   H = np.dot(Ha,H0)
+
+
+
+  x_new = np.dot(H,[centerx,centery,1])
+  x_new = norm_x(x_new)
+
+  t1 = np.array([[1,0,centerx - x_new[0]],[0,1,centery - x_new[1]],[0,0,1]])
+  t1 = t1.astype(np.float64)
+
+  H = np.dot(t1,H)
   #H = H0
   H = np.multiply(1/H[2][2],H)
   print ("H",H)
@@ -580,23 +596,41 @@ def compareImages():
 
 def generateImage():
   correspondences =  putative_correspondences[0]
+  # coords = []
+  # coords.append([(65.177419354838719, 206.04435483870964),(93.54032258064521, 178.15322580645159)])
+  # coords.append([(153.43145161290326, 388.70967741935482),(165.09274193548387, 356.01209677419354)])
+  # coords.append([(650.11693548387098, 532.3790322580644),(537.16532258064524, 535.91532258064512)])
+  # coords.append([(652.16935483870975, 710.9395161290322),(557.60887096774195, 713.77419354838719)])
+  # coords.append([(908.72177419354853, 206.04435483870964),(866.3064516129034, 257.88306451612902)])
+  # coords.append([(863.56854838709683, 415.39112903225805),(831.55241935483878, 435.74193548387098)])
+  # coords.append([(346.35887096774195, 21.32661290322585),(383.83870967741939, 33.004032258064399)])
+  # coords.append([(356.62096774193549, 167.04838709677415),(359.30645161290329, 169.97580645161281)])
+  # coords.append([(446.92741935483878, 312.77016129032256),(404.28225806451621, 311.03629032258061)])
+  # coords.append([(434.61290322580646, 544.69354838709671),(379.75000000000011, 529.7822580645161)])
+  # coords.append([(795.83870967741939, 187.57258064516122),(760.00000000000011, 231.30645161290317)])
+  # coords.append([(535.18145161290329, 423.60080645161287),(457.4354838709678, 421.43145161290323)])
+  # correspondences = coords
   print ("quantidade de pontos:",len(correspondences))
-
+  #F,C = calc_matrix(correspondences)
+  #P,P_,e_ = calc_ps(F)
   F,P,P_,e_,C = rensac(correspondences)
-  n_coords = reconstruct3DPt(correspondences,P,P_)
+  #n_coords = reconstruct3DPt(correspondences,P,P_)
   H,H_,F = ImageRectification(correspondences,e_,P,P_,F,C)
+
+  print ("H",H)
+  print ("H_",H_)
+
+  #H = np.linalg.inv(H)
 
   img1 = Image.open(path_images[0])
   img2 = Image.open(path_images[1])
-  print ("gerando imagem1 retificada...")
+  print ("gerando imagem1 retificada ",path_images[0])
   img1_retified = generateNewImage(H,img1)
   print ("imagem gerada.")
-  print ("gerando imagem2 retificada...")
+  print ("gerando imagem2 retificada",path_images[1])
   img2_retified = generateNewImage(H_,img2)
   print ("imagem gerada.")
-  #print ("gerando imagem...")
-  #new_image = generateNewImage(hs,path_images)
-  #print ("imagem gerada.")
+
   loadImage(img1_retified,'img1_retified')
   loadImage(img2_retified,'img2_retified')
   print (F)
