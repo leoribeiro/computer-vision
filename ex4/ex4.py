@@ -312,7 +312,7 @@ def calc_ps(F):
 def calc_matrix(correspondences):
   N = get_num_poits()
   coords = get_poits_random(N,correspondences)
-  coords = correspondences
+  #coords = correspondences
   coords,t0,t1 = norm_poits(coords)
   
   A = [] 
@@ -615,24 +615,52 @@ def generateImage():
   #P,P_,e_ = calc_ps(F)
   F,P,P_,e_,C = rensac(correspondences)
   #n_coords = reconstruct3DPt(correspondences,P,P_)
-  H,H_,F = ImageRectification(correspondences,e_,P,P_,F,C)
+  #H,H_,F = ImageRectification(correspondences,e_,P,P_,F,C)
+
+  K = np.array([[6486.04,0,2162.77],[0,6504.13,1237.83],[0,0,1]])
+
+  E = np.dot(np.dot(np.transpose(K),F),K)
+
+  P = [[1,0,0,0],[0,1,0,0],[0,0,1,0]]
+
+  W = [[0,-1,0],[1,0,0],[0,0,1]]
+
+  U, s, V = np.linalg.svd(K, full_matrices=True)
+
+  u3 = np.dot(U,[0,0,1])
+
+  p = np.dot(np.dot(U,W),V)
+  P_1 = [[p[0,0],p[0,1],p[0,2],u3[0]],
+        [[p[1,0],p[1,1],p[1,2],u3[1]],
+        [[p[2,0],p[2,1],p[2,2],u3[2]]]
+  P_2 = [[p[0,0],p[0,1],p[0,2],-u3[0]],
+        [[p[1,0],p[1,1],p[1,2],-u3[1]],
+        [[p[2,0],p[2,1],p[2,2],-u3[2]]]
+  p = np.dot(np.dot(U,np.transpose(W)),V)
+  P_3 = [[p[0,0],p[0,1],p[0,2],u3[0]],
+        [[p[1,0],p[1,1],p[1,2],u3[1]],
+        [[p[2,0],p[2,1],p[2,2],u3[2]]]
+  P_4 = [[p[0,0],p[0,1],p[0,2],-u3[0]],
+        [[p[1,0],p[1,1],p[1,2],-u3[1]],
+        [[p[2,0],p[2,1],p[2,2],-u3[2]]]
+
 
   print ("H",H)
   print ("H_",H_)
 
   #H = np.linalg.inv(H)
 
-  img1 = Image.open(path_images[0])
-  img2 = Image.open(path_images[1])
+  #img1 = Image.open(path_images[0])
+  #img2 = Image.open(path_images[1])
   print ("gerando imagem1 retificada ",path_images[0])
-  img1_retified = generateNewImage(H,img1)
+  #img1_retified = generateNewImage(H,img1)
   print ("imagem gerada.")
   print ("gerando imagem2 retificada",path_images[1])
-  img2_retified = generateNewImage(H_,img2)
+  #img2_retified = generateNewImage(H_,img2)
   print ("imagem gerada.")
 
-  loadImage(img1_retified,'img1_retified')
-  loadImage(img2_retified,'img2_retified')
+  #loadImage(img1_retified,'img1_retified')
+  #loadImage(img2_retified,'img2_retified')
   print (F)
   print (P)
   print (P_)
